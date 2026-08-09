@@ -1,0 +1,14 @@
+import { db } from "@/server/db/client";
+import { sql } from "drizzle-orm";
+
+export const dynamic = "force-dynamic";
+
+/** Readiness check: the portal is healthy only when PostgreSQL responds. */
+export async function GET() {
+  try {
+    await db.execute(sql`select 1`);
+    return Response.json({ status: "ok" });
+  } catch {
+    return Response.json({ status: "unavailable" }, { status: 503 });
+  }
+}

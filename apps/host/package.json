@@ -1,0 +1,34 @@
+{
+  "name": "@lanstream/host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && vite build --config vite.guest.config.ts",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p guest/tsconfig.json",
+    "lint": "eslint",
+    "start": "node dist/main.js",
+    "install:linux": "pnpm build && node scripts/install-linux.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@lanstream/protocol": "workspace:*",
+    "lucide-react": "1.31.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@lanstream/typescript-config": "workspace:^",
+    "@types/node": "^20",
+    "@types/react": "19",
+    "@types/react-dom": "19",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5",
+    "vite": "^6",
+    "vitest": "^4"
+  }
+}

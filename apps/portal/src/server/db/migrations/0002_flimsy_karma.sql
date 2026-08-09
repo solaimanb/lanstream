@@ -1,0 +1,1 @@
+-- The initial migration already creates email_verified as boolean.

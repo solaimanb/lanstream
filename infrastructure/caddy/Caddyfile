@@ -1,0 +1,9 @@
+# Optional LAN HTTPS reverse proxy using Caddy's local certificate authority.
+:443 {
+  tls internal
+  reverse_proxy portal:3000
+}
+
+:80 {
+  redir https://{host}{uri} permanent
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "host_device" ADD CONSTRAINT "host_device_server_id_unique" UNIQUE("server_id");

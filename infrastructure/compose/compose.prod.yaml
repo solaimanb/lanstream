@@ -1,0 +1,113 @@
+# LANStream — Production Compose
+#
+# Usage:
+#   docker compose -f compose.prod.yaml up -d
+#   docker compose -f compose.prod.yaml logs -f portal
+#   docker compose -f compose.prod.yaml down
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lanstream-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lanstream
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      POSTGRES_DB: lanstream
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lanstream -d lanstream"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lanstream
+
+  portal:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/portal.Dockerfile
+    container_name: lanstream-portal
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:3000/api/health >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://lanstream:${DATABASE_PASSWORD}@postgres:5432/lanstream
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      PORTAL_URL: ${PORTAL_URL:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - lanstream
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/portal.Dockerfile
+      target: migrator
+    environment:
+      DATABASE_URL: postgres://lanstream:${DATABASE_PASSWORD}@postgres:5432/lanstream
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - lanstream
+
+  host:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/host.Dockerfile
+    container_name: lanstream-host
+    restart: unless-stopped
+    ports:
+      - "4780:4780"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:4780/status >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+    environment:
+      LANSTREAM_PORTAL_URL: http://portal:3000
+      LANSTREAM_AGENT_TOKEN: ${LANSTREAM_AGENT_TOKEN:-}
+      LANSTREAM_CONFIG_PATH: /var/lib/lanstream/agent.json
+      LANSTREAM_PORT: 4780
+      LANSTREAM_MEDIA_PATH: /media
+    volumes:
+      - media:/media
+      - host-config:/var/lib/lanstream
+    depends_on:
+      portal:
+        condition: service_healthy
+    networks:
+      - lanstream
+
+networks:
+  lanstream:
+    driver: bridge
+
+volumes:
+  pgdata:
+  media:
+  host-config:

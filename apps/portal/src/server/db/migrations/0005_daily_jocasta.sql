@@ -1,0 +1,1 @@
+ALTER TABLE "server" ADD COLUMN "media_path" text DEFAULT './media' NOT NULL;

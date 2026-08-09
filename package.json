@@ -3,24 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.3.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "dev": "pnpm --filter @lanstream/portal dev",
+    "build": "pnpm --filter @lanstream/portal build",
+    "start": "pnpm --filter @lanstream/portal start",
+    "lint": "pnpm -r run lint",
+    "lint:portal": "pnpm --filter @lanstream/portal lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "test:portal": "pnpm --filter @lanstream/portal test",
+    "test:host": "pnpm --filter @lanstream/host test",
+    "test:e2e": "pnpm --filter @lanstream/portal test:e2e",
+    "typegen": "pnpm --filter @lanstream/portal typegen",
+    "db:generate": "pnpm --filter @lanstream/portal exec drizzle-kit generate",
+    "db:migrate": "pnpm --filter @lanstream/portal exec drizzle-kit migrate",
+    "db:push": "pnpm --filter @lanstream/portal exec drizzle-kit push",
+    "db:studio": "pnpm --filter @lanstream/portal exec drizzle-kit studio",
+    "host:dev": "pnpm --filter @lanstream/host dev",
+    "host:build": "pnpm --filter @lanstream/host build",
+    "host:start": "pnpm --filter @lanstream/host start",
+    "host:install:linux": "pnpm --filter @lanstream/host install:linux"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.0",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+    "prettier": "^3"
+  },
+  "packageManager": "pnpm@9.0.0"
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "access_link" ADD COLUMN "purpose" text DEFAULT 'guest' NOT NULL;

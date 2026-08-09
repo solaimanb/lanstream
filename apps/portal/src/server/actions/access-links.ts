@@ -1,0 +1,133 @@
+/**
+ * Server Actions — access link management.
+ *
+ * Handles creation and revocation of access links
+ * from the portal UI. Verifies ownership before mutation.
+ */
+"use server";
+
+import type { Result } from "@/lib/result";
+import { err } from "@/lib/result";
+import { getServerSession } from "@/server/auth/session";
+import type {
+  AccessLinkDTO,
+  CreatedAccessLinkDTO,
+} from "@/server/dal/access-links";
+import {
+  createAccessLink,
+  listAccessLinksByServerId,
+  revokeAccessLink,
+} from "@/server/dal/access-links";
+import { getHostDeviceByServerId } from "@/server/dal/host-devices";
+import { createAuditEvent } from "@/server/dal/audit-events";
+import { ensureServerOwnership } from "@/server/security/ownership";
+import {
+  createAccessLinkSchema,
+  revokeAccessLinkSchema,
+} from "@/server/validation/access-links";
+import { revalidatePath } from "next/cache";
+
+/* ------------------------------------------------------------------ */
+/*  Actions                                                            */
+/* ------------------------------------------------------------------ */
+
+/** List access links for a server. */
+export async function listAccessLinks(
+  serverId: string,
+): Promise<
+  Result<AccessLinkDTO[], "unauthorized" | "not_found" | "forbidden">
+> {
+  const session = await getServerSession();
+  if (!session?.user) return err("unauthorized");
+
+  const ownership = await ensureServerOwnership(serverId, session.user.id);
+  if (!ownership.ok) return err(ownership.error);
+
+  const links = await listAccessLinksByServerId(serverId);
+  return { ok: true, data: links };
+}
+
+/** Create a new access link. */
+export async function createAccessLinkAction(
+  input: unknown,
+): Promise<
+  Result<
+    CreatedAccessLinkDTO & { guestUrl: string | null },
+    "validation_error" | "unauthorized" | "not_found" | "forbidden"
+  >
+> {
+  const session = await getServerSession();
+  if (!session?.user) return err("unauthorized");
+
+  const parsed = createAccessLinkSchema.safeParse(input);
+  if (!parsed.success) return err("validation_error");
+
+  const ownership = await ensureServerOwnership(
+    parsed.data.serverId,
+    session.user.id,
+  );
+  if (!ownership.ok) return err(ownership.error);
+
+  const link = await createAccessLink({
+    serverId: parsed.data.serverId,
+    description: parsed.data.description,
+    expiresAt: parsed.data.expiresAt,
+    purpose: parsed.data.purpose,
+  });
+  const host = await getHostDeviceByServerId(parsed.data.serverId);
+  const hostAddress = host
+    ? host.localIp.includes(":")
+      ? `[${host.localIp}]`
+      : host.localIp
+    : null;
+  const guestUrl = hostAddress && parsed.data.purpose === "guest"
+    ? `http://${hostAddress}:${host!.port}/watch#${new URLSearchParams({ token: link.token })}`
+    : null;
+
+  await createAuditEvent({
+    userId: session.user.id,
+    action: "access_link.created",
+    targetType: "access_link",
+    targetId: link.id,
+    metadata: { serverId: parsed.data.serverId },
+  });
+
+  revalidatePath(`/(portal)/servers/${parsed.data.serverId}/access`);
+  return { ok: true, data: { ...link, guestUrl } };
+}
+
+/** Revoke an access link. */
+export async function revokeAccessLinkAction(
+  input: unknown,
+): Promise<
+  Result<void, "validation_error" | "unauthorized" | "not_found" | "forbidden">
+> {
+  const session = await getServerSession();
+  if (!session?.user) return err("unauthorized");
+
+  const parsed = revokeAccessLinkSchema.safeParse(input);
+  if (!parsed.success) return err("validation_error");
+
+  const ownership = await ensureServerOwnership(
+    parsed.data.serverId,
+    session.user.id,
+  );
+  if (!ownership.ok) return err(ownership.error);
+
+  const result = await revokeAccessLink(
+    parsed.data.linkId,
+    parsed.data.serverId,
+  );
+  if (!result.ok) return err(result.error);
+
+  await createAuditEvent({
+    userId: session.user.id,
+    action: "access_link.revoked",
+    targetType: "access_link",
+    targetId: parsed.data.linkId,
+    metadata: { serverId: parsed.data.serverId },
+  });
+
+  revalidatePath(`/(portal)/servers/${parsed.data.serverId}/access`);
+  return { ok: true, data: undefined };
+}

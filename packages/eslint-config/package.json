@@ -1,0 +1,15 @@
+{
+  "name": "@lanstream/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8",
+    "@typescript-eslint/parser": "^8",
+    "eslint": "^9"
+  }
+}

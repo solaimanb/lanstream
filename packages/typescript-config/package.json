@@ -1,0 +1,11 @@
+{
+  "name": "@lanstream/typescript-config",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./base.json": "./base.json",
+    "./nextjs.json": "./nextjs.json",
+    "./react.json": "./react.json",
+    "./node.json": "./node.json"
+  }
+}

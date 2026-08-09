@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786276945002,
+      "tag": "0000_tidy_toad_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786276979316,
+      "tag": "0001_long_miek",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786277118712,
+      "tag": "0002_flimsy_karma",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786277399293,
+      "tag": "0003_breezy_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786277637486,
+      "tag": "0004_tidy_hannibal_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786292760730,
+      "tag": "0005_daily_jocasta",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786298796724,
+      "tag": "0006_complete_bromley",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786300168592,
+      "tag": "0007_overjoyed_old_lace",
+      "breakpoints": true
+    }
+  ]
+}
