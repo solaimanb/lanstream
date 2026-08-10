@@ -4,7 +4,7 @@
  * This is the central auth instance — import from here in all
  * server-side auth code. Do NOT import from client components.
  */
-import { BETTER_AUTH_SECRET, PORTAL_URL } from "@/lib/env";
+import { BETTER_AUTH_SECRET, PORTAL_URL, ADDITIONAL_TRUSTED_ORIGINS } from "@/lib/env";
 import { db } from "@/server/db/client";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -15,7 +15,7 @@ export const auth = betterAuth({
     provider: "pg",
   }),
   baseURL: PORTAL_URL,
-  trustedOrigins: [PORTAL_URL],
+  trustedOrigins: [PORTAL_URL, ...ADDITIONAL_TRUSTED_ORIGINS],
   secret: BETTER_AUTH_SECRET,
   emailAndPassword: {
     enabled: true,

@@ -25,6 +25,10 @@ export const PORTAL_URL = getEnvVar("PORTAL_URL", "http://localhost:3000");
 // Auth
 export const BETTER_AUTH_SECRET = getEnvVar("BETTER_AUTH_SECRET");
 export const BETTER_AUTH_URL = getEnvVar("BETTER_AUTH_URL", PORTAL_URL);
+export const ADDITIONAL_TRUSTED_ORIGINS = getEnvVar("ADDITIONAL_TRUSTED_ORIGINS", "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 if (NODE_ENV === "production" && BETTER_AUTH_SECRET.length < 32) {
   throw new Error("BETTER_AUTH_SECRET must be at least 32 characters in production");
