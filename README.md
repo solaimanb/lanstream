@@ -30,7 +30,8 @@ lanstream/
 │   │   ├── src/server/      # Trusted backend layer (DAL, auth, security)
 │   │   └── src/lib/         # Small shared utilities
 │   └── host/                # Node.js LAN Host (Vite)
-│       └── src/             # Config, protocol client, file server, heartbeat
+│       ├── src/             # Config, protocol client, file server, heartbeat
+│       └── guest/           # React guest page (Vite-built SPA)
 ├── packages/
 │   ├── protocol/            # Shared types for portal↔host communication
 │   ├── eslint-config/       # Shared ESLint base config
@@ -93,17 +94,80 @@ pnpm lint
 pnpm typecheck
 ```
 
-### Production Deployment
+### Production Deployment (VPS)
+
+```
+┌─────────────────────────────┐
+│          YOUR VPS           │
+│                             │
+│  ┌──────────┐ ┌──────────┐  │
+│  │ Portal   │ │PostgreSQL│  │   ← Docker Compose
+│  │  :3000   │ │  :5432   │  │
+│  └──────────┘ └──────────┘  │
+└─────────────────────────────┘
+         ▲ HTTPS (outbound only)
+         │
+┌─────────────────────────────┐
+│     YOUR LAN MACHINE        │
+│  (media files live here)    │
+│                             │
+│  ┌───────────────────────┐  │
+│  │   LAN Host  :4780     │  │   ← systemd service
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+```
+
+**VPS (Portal + DB):**
 
 ```bash
-# Set environment variables
-export DATABASE_PASSWORD=<your-password>
-export BETTER_AUTH_SECRET=<your-secret>  # min 32 chars
-export SERVER_ID=<server-uuid>
+# Clone and configure
+git clone <repo-url> && cd lanstream
+cp infrastructure/scripts/env.example .env
 
-# Start the full stack
-docker compose -f infrastructure/compose/compose.prod.yaml up -d
+# Generate secrets
+sed -i "s|DATABASE_PASSWORD=.*|DATABASE_PASSWORD=$(openssl rand -base64 32)|" .env
+sed -i "s|BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$(openssl rand -base64 48)|" .env
+
+# Set your public domain
+sed -i "s|BETTER_AUTH_URL=.*|BETTER_AUTH_URL=https://your-domain.com|" .env
+sed -i "s|PORTAL_URL=.*|PORTAL_URL=https://your-domain.com|" .env
+
+# Start
+cd infrastructure/compose
+docker compose -f compose.prod.yaml up -d
 ```
+
+Put **Caddy** or **nginx** in front for HTTPS:
+
+```bash
+# Caddy example
+sudo tee /etc/caddy/Caddyfile <<'EOF'
+your-domain.com {
+    reverse_proxy localhost:3000
+}
+EOF
+sudo systemctl reload caddy
+```
+
+**LAN Host (media machine):**
+
+```bash
+# Build
+pnpm install
+pnpm --filter host build
+
+# Linux desktop (auto-start + browser pairing)
+pnpm host:install:linux
+
+# Or run manually
+LANSTREAM_PORTAL_URL=https://your-domain.com node apps/host/dist/main.js
+```
+
+**Pair and share:**
+1. Open `https://your-domain.com` → sign up
+2. Go to **Host Machines** → approve the pending host
+3. Create a server with a media path (e.g. `/home/user/Movies`)
+4. Create an access link → share the URL with LAN guests
 
 ## Tech Stack
 
@@ -125,6 +189,8 @@ docker compose -f infrastructure/compose/compose.prod.yaml up -d
 - **Access Links**: Generate revocable tokens for guest streaming
 - **Live Status**: Real-time server status via heartbeat protocol
 - **File Streaming**: HTTP Range requests for video/audio playback
+- **Guest Page**: React file browser with inline media playback (Vite-built)
+- **LAN-only**: Host enforces RFC 1918 private IP checks on guest access
 - **Security**: Security headers, rate limiting, timing-safe comparisons
 
 ## Protocol
@@ -140,13 +206,25 @@ See `packages/protocol/src/index.ts` for shared type definitions.
 
 ## Environment Variables
 
+### Portal (VPS)
+
 | Variable             | Required | Default                 | Description                  |
 | -------------------- | -------- | ----------------------- | ---------------------------- |
 | `DATABASE_URL`       | ✅       | —                       | PostgreSQL connection string |
+| `DATABASE_PASSWORD`  | ✅       | —                       | Postgres password (prod)     |
 | `BETTER_AUTH_SECRET` | ✅       | —                       | Auth secret (min 32 chars)   |
 | `BETTER_AUTH_URL`    | —        | `PORTAL_URL`            | Auth callback URL            |
 | `PORTAL_URL`         | —        | `http://localhost:3000` | Public portal URL            |
 | `NODE_ENV`           | —        | `development`           | Environment mode             |
+
+### LAN Host (media machine)
+
+| Variable                | Required | Default | Description                             |
+| ----------------------- | -------- | ------- | --------------------------------------- |
+| `LANSTREAM_PORTAL_URL`  | ✅       | —       | URL of the portal (for pairing)         |
+| `LANSTREAM_AGENT_TOKEN` | —        | —       | Recovery token for headless pairing     |
+| `LANSTREAM_PORT`        | —        | `4780`  | Port for the file server                |
+| `LANSTREAM_MEDIA_PATH`  | —        | —       | Default media directory                 |
 
 ## Documentation
 
