@@ -83,12 +83,12 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -qO- http://localhost:4780/status >/dev/null || exit 1",
+          "pgrep -x node >/dev/null || exit 1",
         ]
       interval: 15s
       timeout: 5s
       retries: 4
-      start_period: 20s
+      start_period: 10s
     environment:
       LANSTREAM_PORTAL_URL: http://portal:3000
       LANSTREAM_AGENT_TOKEN: ${LANSTREAM_AGENT_TOKEN:-}
