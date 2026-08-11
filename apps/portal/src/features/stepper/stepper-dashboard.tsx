@@ -205,13 +205,20 @@ export function StepperDashboard({
   };
 
   /* ── Clipboard ── */
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.add({ title: `${label} copied`, type: "success" });
-    } catch {
-      toast.add({ title: "Failed to copy", type: "error" });
-    }
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => toast.add({ title: `${label} copied`, type: "success" }))
+      .catch(() => {
+        // Fallback for HTTP or non-secure contexts
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.style.cssText = "position:fixed;left:-9999px;top:0";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        toast.add({ title: ok ? `${label} copied` : "Copy failed", type: ok ? "success" : "error" });
+      });
   };
 
   /* ── Delete server ── */
