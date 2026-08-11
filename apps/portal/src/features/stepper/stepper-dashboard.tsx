@@ -206,19 +206,25 @@ export function StepperDashboard({
 
   /* ── Clipboard ── */
   const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-      .then(() => toast.add({ title: `${label} copied`, type: "success" }))
-      .catch(() => {
-        // Fallback for HTTP or non-secure contexts
-        const el = document.createElement("textarea");
-        el.value = text;
-        el.style.cssText = "position:fixed;left:-9999px;top:0";
-        document.body.appendChild(el);
-        el.select();
-        const ok = document.execCommand("copy");
-        document.body.removeChild(el);
-        toast.add({ title: ok ? `${label} copied` : "Copy failed", type: ok ? "success" : "error" });
-      });
+    const fallback = () => {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.style.cssText = "position:fixed;left:-9999px;top:0";
+      document.body.appendChild(el);
+      el.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(el);
+      return ok;
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => toast.add({ title: `${label} copied`, type: "success" }))
+        .catch(() => { const ok = fallback(); toast.add({ title: ok ? `${label} copied` : "Copy failed", type: ok ? "success" : "error" }); });
+    } else {
+      const ok = fallback();
+      toast.add({ title: ok ? `${label} copied` : "Copy failed", type: ok ? "success" : "error" });
+    }
   };
 
   /* ── Delete server ── */
