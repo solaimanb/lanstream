@@ -16,16 +16,6 @@ import Stepper, { Step } from "@/components/ui/stepper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyHeader,
@@ -63,11 +53,9 @@ import {
   Share2,
   ArrowRight,
   Trash2,
-  LogOut,
   ExternalLink,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
 import { toast } from "@/components/ui/toast";
 import type { ServerDTO } from "@/types";
 import type { HostAgentDTO } from "@/server/dal/host-agents";
@@ -77,24 +65,8 @@ import type { HostAgentDTO } from "@/server/dal/host-agents";
 /* ------------------------------------------------------------------ */
 
 interface StepperDashboardProps {
-  user: { name?: string | null; email?: string | null } | null;
   initialServers: ServerDTO[];
   initialAgents: HostAgentDTO[];
-}
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-
-function userInitials(name?: string | null, email?: string | null): string {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    return parts.length >= 2
-      ? (parts[0][0] + parts[1][0]).toUpperCase()
-      : parts[0].slice(0, 2).toUpperCase();
-  }
-  if (email) return email.slice(0, 2).toUpperCase();
-  return "U";
 }
 
 /* ------------------------------------------------------------------ */
@@ -102,7 +74,6 @@ function userInitials(name?: string | null, email?: string | null): string {
 /* ------------------------------------------------------------------ */
 
 export function StepperDashboard({
-  user,
   initialServers,
   initialAgents,
 }: StepperDashboardProps) {
@@ -241,15 +212,6 @@ export function StepperDashboard({
     setDeleteTargetId(null);
   };
 
-  /* ── Sign out ── */
-  const handleSignOut = () => {
-    authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => router.push("/sign-in"),
-      },
-    });
-  };
-
   /* ── Navigation ── */
   const goToServer = (id: string) => router.push(`/servers/${id}`);
 
@@ -271,45 +233,7 @@ export function StepperDashboard({
 
   if (view === "servers") {
     return (
-      <div className="flex min-h-screen flex-col bg-background">
-        {/* ── Top bar ── */}
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/80 px-6 py-3 backdrop-blur supports-backdrop-filter:bg-background/60">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Server className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-sm font-semibold">LANStream</span>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-              }
-            >
-              <Avatar size="sm">
-                <AvatarFallback>{userInitials(user?.name, user?.email)}</AvatarFallback>
-              </Avatar>
-              <span className="hidden text-sm font-medium sm:inline">
-                {user?.name ?? user?.email}
-              </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={8}>
-              <DropdownMenuLabel>
-                {user?.name ?? user?.email}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-1.5 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
-
-        {/* ── Content ── */}
-        <main className="flex-1 p-6 lg:p-8">
+      <div className="p-6 lg:p-8">
           <div className="mx-auto max-w-2xl">
             <div className="flex items-center justify-between">
               <div>
@@ -410,8 +334,7 @@ export function StepperDashboard({
               )}
             </div>
           </div>
-        </main>
-      </div>
+        </div>
     );
   }
 
@@ -420,25 +343,19 @@ export function StepperDashboard({
   /* ══════════════════════════════════════════════════════════════════ */
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      {/* ── Minimal header ── */}
-      <div className="fixed left-0 right-0 top-0 z-10 flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-            <Server className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <span className="text-sm font-semibold">LANStream</span>
-        </div>
-        {initialServers.length > 0 && (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      {/* Back link for returning users */}
+      {initialServers.length > 0 && (
+        <div className="mb-8">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setView("servers")}
           >
-            Back to servers
+            ← Back to servers
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <Stepper
         initialStep={1}

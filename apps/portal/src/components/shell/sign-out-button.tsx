@@ -8,6 +8,8 @@ export function SignOutButton() {
 
   return (
     <button
+      type="button"
+      aria-label="Sign out of your account"
       onClick={() =>
         authClient.signOut({
           fetchOptions: {
@@ -17,7 +19,7 @@ export function SignOutButton() {
           },
         })
       }
-      className="w-full rounded-lg px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="w-full rounded-lg px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       Sign out
     </button>

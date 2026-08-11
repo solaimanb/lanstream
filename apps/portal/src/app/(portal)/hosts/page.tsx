@@ -13,6 +13,7 @@ import { Server } from "lucide-react";
 import { getServerSession } from "@/server/auth/session";
 import { listHostAgentsByOwner } from "@/server/dal/host-agents";
 import { PORTAL_URL } from "@/lib/env";
+import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
 
 export default async function HostsPage() {
   const session = await getServerSession();
@@ -22,6 +23,7 @@ export default async function HostsPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={[{ label: "Host Machines" }]} />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Host Machines</h1>
         <p className="mt-2 text-sm text-muted-foreground">

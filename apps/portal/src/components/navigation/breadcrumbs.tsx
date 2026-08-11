@@ -25,26 +25,28 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
-    <Breadcrumb className="mb-6">
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink render={<Link href="/dashboard" />}>
-            Home
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        {items.map((item, index) => (
-          <BreadcrumbItem key={index}>
-            <BreadcrumbSeparator />
-            {item.href ? (
-              <BreadcrumbLink render={<Link href={item.href} />}>
-                {item.label}
-              </BreadcrumbLink>
-            ) : (
-              <BreadcrumbPage>{item.label}</BreadcrumbPage>
-            )}
+    <nav aria-label="Breadcrumb" className="mb-6">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/dashboard" />}>
+              Home
+            </BreadcrumbLink>
           </BreadcrumbItem>
-        ))}
-      </BreadcrumbList>
-    </Breadcrumb>
+          {items.map((item, index) => (
+            <BreadcrumbItem key={index}>
+              <BreadcrumbSeparator />
+              {item.href ? (
+                <BreadcrumbLink render={<Link href={item.href} />}>
+                  {item.label}
+                </BreadcrumbLink>
+              ) : (
+                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+              )}
+            </BreadcrumbItem>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+    </nav>
   );
 }

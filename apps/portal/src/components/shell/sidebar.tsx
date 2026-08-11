@@ -14,16 +14,22 @@ export async function Sidebar() {
   const session = await getServerSession();
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-border bg-background">
+    <aside
+      className="flex h-full w-64 flex-col border-r border-border bg-background"
+      aria-label="Sidebar"
+    >
       {/* Brand */}
       <div className="flex h-14 items-center border-b border-border px-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
+        <Link
+          href="/dashboard"
+          className="text-lg font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+        >
           LANStream
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-1 p-2" aria-label="Primary">
         <NavLink href="/dashboard">Dashboard</NavLink>
         <NavLink href="/servers/new">New Server</NavLink>
         <NavLink href="/hosts">Host Machines</NavLink>
@@ -74,7 +80,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+      className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       {children}
     </Link>

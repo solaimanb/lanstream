@@ -15,7 +15,6 @@ export default async function DashboardPage() {
 
   return (
     <StepperDashboard
-      user={session?.user ?? null}
       initialServers={servers}
       initialAgents={agents}
     />

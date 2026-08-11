@@ -4,7 +4,7 @@ import { SignInForm } from "./_components/sign-in-form";
 
 export default function SignInPage() {
   return (
-    <div className="w-full max-w-sm">
+    <>
       <Card>
         <CardHeader>
           <CardTitle>Sign In</CardTitle>
@@ -20,6 +20,6 @@ export default function SignInPage() {
           Sign up
         </Link>
       </p>
-    </div>
+    </>
   );
 }

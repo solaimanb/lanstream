@@ -15,7 +15,7 @@ export function ServerTabs({ serverId }: { serverId: string }) {
   const base = `/servers/${serverId}`;
 
   return (
-    <nav className="flex gap-4 border-b border-border">
+    <nav aria-label="Server sections" className="flex gap-4 border-b border-border">
       {tabs.map((tab) => {
         const href = `${base}${tab.href}`;
         const isActive =
