@@ -116,11 +116,11 @@ export default function Stepper({
   return (
     <div className="flex min-h-full flex-1 flex-col items-center justify-center p-4">
       <div
-        className={`mx-auto w-full max-w-2xl rounded-2xl border border-border bg-card shadow-lg ${stepCircleContainerClassName}`}
+        className={`mx-auto w-full max-w-3xl rounded-2xl border border-border bg-card shadow-lg ${stepCircleContainerClassName}`}
       >
         {/* Step indicators */}
         <div
-          className={`flex w-full items-center px-12 pt-8 pb-2 ${stepContainerClassName}`}
+          className={`flex w-full items-center justify-center px-14 pt-8 pb-4 gap-2 ${stepContainerClassName}`}
         >
           {stepsArray.map((_, index) => {
             const stepNumber = index + 1;
@@ -160,14 +160,14 @@ export default function Stepper({
           isCompleted={isCompleted}
           currentStep={currentStep}
           direction={direction}
-          className={`space-y-2 px-10 ${contentClassName}`}
+          className={`space-y-2 px-12 py-2 ${contentClassName}`}
         >
           {stepsArray[currentStep - 1]}
         </StepContentWrapper>
 
         {/* Navigation buttons */}
         {!isCompleted && (
-          <div className={`px-10 pb-8 ${footerClassName}`}>
+          <div className={`px-12 pb-8 ${footerClassName}`}>
             <div
               className={`mt-6 flex ${
                 currentStep !== 1 ? "justify-between" : "justify-end"
@@ -337,7 +337,7 @@ function StepIndicator({
           complete: { scale: 1, backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" },
         }}
         transition={{ duration: 0.3 }}
-        className="flex h-9 w-9 items-center justify-center rounded-full font-semibold text-sm"
+        className="flex h-10 w-10 items-center justify-center rounded-full font-semibold text-sm"
       >
         {status === "complete" ? (
           <CheckIcon className="h-4 w-4" />
@@ -362,7 +362,7 @@ function StepConnector({ isComplete }: { isComplete: boolean }) {
   };
 
   return (
-    <div className="relative mx-2 h-0.5 flex-1 overflow-hidden rounded bg-border">
+    <div className="relative mx-3 h-0.5 flex-1 overflow-hidden rounded bg-border">
       <motion.div
         className="absolute left-0 top-0 h-full"
         variants={lineVariants}
