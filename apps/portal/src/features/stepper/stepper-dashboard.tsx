@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Empty,
   EmptyHeader,
@@ -26,6 +25,17 @@ import {
   EmptyDescription,
   EmptyContent,
 } from "@/components/ui/empty";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { StatusBadge } from "@/components/feedback/status-badge";
 import { createServerAction } from "@/server/actions/servers";
 import { createAccessLinkAction } from "@/server/actions/access-links";
@@ -168,15 +178,20 @@ export function StepperDashboard({
   };
 
   /* ── Clipboard ── */
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      /* silent */
+    }
   };
 
   /* ── Delete server ── */
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
   const handleDeleteServer = async (serverId: string) => {
-    if (!confirm("Delete this server permanently?")) return;
     try {
       const { deleteServerAction } = await import("@/server/actions/servers");
       const result = await deleteServerAction(serverId);
@@ -184,6 +199,7 @@ export function StepperDashboard({
     } catch {
       /* silent */
     }
+    setDeleteTargetId(null);
   };
 
   /* ── Sign out ── */
@@ -277,17 +293,40 @@ export function StepperDashboard({
                         <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                       </div>
                     </button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteServer(server.id);
-                      }}
-                      className="ml-2 h-8 w-8 shrink-0 p-0 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog open={deleteTargetId === server.id} onOpenChange={(open) => { if (!open) setDeleteTargetId(null); }}>
+                      <AlertDialogTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTargetId(server.id);
+                            }}
+                            className="ml-2 shrink-0 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                          />
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete server?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete <strong>{server.name}</strong> and all its access links. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => handleDeleteServer(server.id)}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardContent>
                 </Card>
               ))}
@@ -363,26 +402,26 @@ export function StepperDashboard({
       >
         {/* ── Step 1: Welcome ── */}
         <Step>
-          <div className="py-4 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <Server className="h-7 w-7 text-primary" />
+          <div className="py-6 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <Server className="h-8 w-8 text-primary" />
             </div>
-            <h2 className="text-xl font-bold">Welcome to LANStream</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <h2 className="text-xl font-bold tracking-tight">Welcome to LANStream</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Stream media across your local network.
               <br />
               Set up your first server in 3 simple steps.
             </p>
-            <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">
+            <div className="mt-8 flex items-center justify-center gap-4">
               {["Connect", "Create", "Share"].map((label, i) => (
-                <div key={label} className="flex items-center gap-6">
-                  <div className="flex flex-col items-center gap-1.5">
-                    <Badge variant="secondary" className="h-8 w-8 justify-center rounded-full text-[10px] font-bold">
+                <div key={label} className="flex items-center gap-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
                       {i + 1}
-                    </Badge>
-                    <span>{label}</span>
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">{label}</span>
                   </div>
-                  {i < 2 && <div className="h-px w-8 bg-border" />}
+                  {i < 2 && <div className="mb-6 h-px w-10 bg-border" />}
                 </div>
               ))}
             </div>
@@ -404,19 +443,15 @@ export function StepperDashboard({
 
             {/* Launch button */}
             <Card>
-              <CardContent className="py-4 text-center">
-                <Button
-                  render={
-                    <a
-                      href={`lanstream://pair?portal=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`}
-                    />
-                  }
-                  className="gap-2"
+              <CardContent className="flex flex-col items-center gap-2 py-4 text-center">
+                <a
+                  href={`lanstream://pair?portal=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   <Monitor className="h-4 w-4" />
                   Launch LANStream Host
-                </Button>
-                <p className="mt-2 text-xs text-muted-foreground">
+                </a>
+                <p className="text-xs text-muted-foreground">
                   Install it once on your media computer if you have not yet.
                 </p>
               </CardContent>
@@ -469,13 +504,13 @@ export function StepperDashboard({
 
         {/* ── Step 3: Create Server ── */}
         <Step>
-          <div className="py-2">
-            <div className="mb-4 text-center">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-                <FolderOpen className="h-5 w-5 text-primary" />
+          <div className="py-4">
+            <div className="mb-5 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <FolderOpen className="h-6 w-6 text-primary" />
               </div>
-              <h2 className="text-lg font-bold">Name Your Server</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h2 className="text-lg font-bold tracking-tight">Name Your Server</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
                 Choose a name and set the media folder path.
               </p>
             </div>
@@ -506,10 +541,8 @@ export function StepperDashboard({
             </div>
 
             {createError && (
-              <div className="mt-4">
-                <Badge variant="destructive" className="w-full justify-center py-1">
-                  {createError}
-                </Badge>
+              <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+                <p className="text-center text-sm text-destructive">{createError}</p>
               </div>
             )}
           </div>
@@ -517,13 +550,13 @@ export function StepperDashboard({
 
         {/* ── Step 4: Share ── */}
         <Step>
-          <div className="py-2">
-            <div className="mb-4 text-center">
-              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-                <Share2 className="h-5 w-5 text-primary" />
+          <div className="py-4">
+            <div className="mb-5 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Share2 className="h-6 w-6 text-primary" />
               </div>
-              <h2 className="text-lg font-bold">Share Access</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h2 className="text-lg font-bold tracking-tight">Share Access</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
                 Generate guest links to share your media.
               </p>
             </div>
@@ -532,7 +565,9 @@ export function StepperDashboard({
             {createdServerName && (
               <Card className="mb-4">
                 <CardContent className="flex items-center gap-3 py-3">
-                  <Server className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Server className="h-4 w-4 text-primary" />
+                  </div>
                   <span className="text-sm font-medium">
                     {createdServerName}
                   </span>
@@ -561,33 +596,60 @@ export function StepperDashboard({
 
             {/* Generated links */}
             {generatedLinks.length > 0 && (
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-3">
+                <p className="text-xs text-muted-foreground text-center">
+                  Copy these now. The token will not be shown again.
+                </p>
                 {generatedLinks.map((link, i) => (
                   <Card key={i} className="border-primary/20 bg-primary/5">
-                    <CardContent className="py-3">
-                      <p className="mb-2 text-xs font-medium text-primary">
-                        Guest Share Link
-                      </p>
-                      <div className="flex gap-2">
-                        <Input
-                          readOnly
-                          value={link.guestUrl}
-                          className="font-mono text-xs"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(link.guestUrl, `url-${i}`)
-                          }
-                          className="shrink-0"
-                        >
-                          {copiedId === `url-${i}` ? (
-                            <Check className="h-3.5 w-3.5 text-primary" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                    <CardContent className="space-y-3 py-4">
+                      <div>
+                        <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                          Guest Access Token
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            readOnly
+                            value={link.token}
+                            className="font-mono text-xs"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={() => copyToClipboard(link.token, `token-${i}`)}
+                            className="shrink-0"
+                          >
+                            {copiedId === `token-${i}` ? (
+                              <Check className="h-3.5 w-3.5 text-green-600" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                          Guest Share Link
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            readOnly
+                            value={link.guestUrl}
+                            className="font-mono text-xs"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={() => copyToClipboard(link.guestUrl, `url-${i}`)}
+                            className="shrink-0"
+                          >
+                            {copiedId === `url-${i}` ? (
+                              <Check className="h-3.5 w-3.5 text-green-600" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

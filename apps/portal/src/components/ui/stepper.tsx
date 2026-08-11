@@ -8,6 +8,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { motion, AnimatePresence, type Variants } from "motion/react";
+import { Button } from "@/components/ui/button";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -39,7 +40,7 @@ interface StepperProps {
 /* ------------------------------------------------------------------ */
 
 export function Step({ children }: { children: ReactNode }) {
-  return <div className="px-6 py-2">{children}</div>;
+  return <div className="px-8 py-2">{children}</div>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -115,11 +116,11 @@ export default function Stepper({
   return (
     <div className="flex min-h-full flex-1 flex-col items-center justify-center p-4">
       <div
-        className={`mx-auto w-full max-w-lg rounded-2xl border border-border bg-card shadow-lg ${stepCircleContainerClassName}`}
+        className={`mx-auto w-full max-w-xl rounded-2xl border border-border bg-card shadow-lg ${stepCircleContainerClassName}`}
       >
         {/* Step indicators */}
         <div
-          className={`flex w-full items-center px-8 pt-8 ${stepContainerClassName}`}
+          className={`flex w-full items-center px-10 pt-8 pb-2 ${stepContainerClassName}`}
         >
           {stepsArray.map((_, index) => {
             const stepNumber = index + 1;
@@ -159,31 +160,31 @@ export default function Stepper({
           isCompleted={isCompleted}
           currentStep={currentStep}
           direction={direction}
-          className={`space-y-2 px-6 ${contentClassName}`}
+          className={`space-y-2 px-8 ${contentClassName}`}
         >
           {stepsArray[currentStep - 1]}
         </StepContentWrapper>
 
         {/* Navigation buttons */}
         {!isCompleted && (
-          <div className={`px-6 pb-6 ${footerClassName}`}>
+          <div className={`px-8 pb-8 ${footerClassName}`}>
             <div
               className={`mt-6 flex ${
                 currentStep !== 1 ? "justify-between" : "justify-end"
               }`}
             >
               {currentStep !== 1 && (
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleBack}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   {backButtonText}
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 onClick={isLastStep ? handleComplete : handleNext}
                 disabled={isTransitioning}
-                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="gap-2"
               >
                 {isTransitioning && (
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -192,7 +193,7 @@ export default function Stepper({
                   </svg>
                 )}
                 {isLastStep ? completeButtonText : nextButtonText}
-              </button>
+              </Button>
             </div>
           </div>
         )}
