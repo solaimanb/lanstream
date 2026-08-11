@@ -5,9 +5,23 @@ import { err, ok } from "@/lib/result";
 import { getServerSession } from "@/server/auth/session";
 import { approveAgentPairing } from "@/server/dal/agent-pairings";
 import { createAuditEvent } from "@/server/dal/audit-events";
-import { deleteOwnedHostAgent } from "@/server/dal/host-agents";
+import {
+  deleteOwnedHostAgent,
+  listHostAgentsByOwner,
+} from "@/server/dal/host-agents";
+import type { HostAgentDTO } from "@/server/dal/host-agents";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+
+/** List host agents owned by the current user. */
+export async function listMyHostAgents(): Promise<
+  Result<HostAgentDTO[], "unauthorized">
+> {
+  const session = await getServerSession();
+  if (!session?.user) return err("unauthorized");
+  const agents = await listHostAgentsByOwner(session.user.id);
+  return ok(agents);
+}
 
 export async function approveHostAgentAction(
   userCode: string,
