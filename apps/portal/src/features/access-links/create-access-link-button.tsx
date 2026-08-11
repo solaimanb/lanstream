@@ -19,6 +19,20 @@ export function CreateAccessLinkButton({
   const [createdShareUrl, setCreatedShareUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const copy = (text: string) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+    } else {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.style.cssText = "position:fixed;left:-9999px;top:0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+  };
+
   return (
     <div className="flex flex-col items-end gap-2">
       <Button
@@ -54,7 +68,7 @@ export function CreateAccessLinkButton({
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => navigator.clipboard.writeText(createdToken)}
+              onClick={() => copy(createdToken)}
             >
               Copy
             </Button>
@@ -72,7 +86,7 @@ export function CreateAccessLinkButton({
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => navigator.clipboard.writeText(createdShareUrl)}
+                  onClick={() => copy(createdShareUrl)}
                 >
                   Copy
                 </Button>
