@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getServerSession } from "@/server/auth/session";
 import Link from "next/link";
+import { SignOutButton } from "./sign-out-button";
 
 export async function Sidebar() {
   const session = await getServerSession();
@@ -31,20 +32,23 @@ export async function Sidebar() {
       {/* User */}
       <div className="border-t border-border p-4">
         {session?.user ? (
-          <div className="flex items-center gap-3">
-            <Avatar size="sm">
-              <AvatarFallback>
-                {session.user.name?.charAt(0).toUpperCase() ?? "?"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">
-                {session.user.name}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {session.user.email}
-              </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Avatar size="sm">
+                <AvatarFallback>
+                  {session.user.name?.charAt(0).toUpperCase() ?? "?"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {session.user.name}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {session.user.email}
+                </p>
+              </div>
             </div>
+            <SignOutButton />
           </div>
         ) : (
           <Button render={<Link href="/sign-in" />} className="w-full">
