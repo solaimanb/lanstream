@@ -1,31 +1,39 @@
 "use client";
 
 /**
- * StepperDashboard — the single-page onboarding flow.
+ * StepperDashboard — the single-page onboarding & management flow.
  *
- * New users see a 4-step guided flow:
- *   1. Welcome    — intro + what LANStream does
- *   2. Create     — name your server + media path
- *   3. Connect    — pair your host device
- *   4. Share      — generate guest access links
+ * New users see a guided stepper:
+ *   1. Welcome — intro
+ *   2. Connect — pair host device
+ *   3. Create  — name server + media path
+ *   4. Share   — generate guest access links
  *
- * Returning users see their servers with management options.
+ * Returning users see a server list with management options.
  */
 import { useState, useEffect, useCallback } from "react";
 import Stepper, { Step } from "@/components/ui/stepper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
 import { StatusBadge } from "@/components/feedback/status-badge";
 import { createServerAction } from "@/server/actions/servers";
 import { createAccessLinkAction } from "@/server/actions/access-links";
-import { listMyServers } from "@/server/actions/servers";
 import { listMyHostAgents } from "@/server/actions/host-agents";
-import { Card } from "@/components/ui/card";
 import {
   Server,
   FolderOpen,
   Plus,
-  ExternalLink,
   Copy,
   Check,
   Monitor,
@@ -34,14 +42,15 @@ import {
   Share2,
   ArrowRight,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { SignOutButton } from "@/components/shell/sign-out-button";
+import { authClient } from "@/lib/auth-client";
 import type { ServerDTO } from "@/types";
 import type { HostAgentDTO } from "@/server/dal/host-agents";
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                              */
+/*  Props                                                              */
 /* ------------------------------------------------------------------ */
 
 interface StepperDashboardProps {
@@ -51,7 +60,7 @@ interface StepperDashboardProps {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Main Component                                                     */
+/*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
 export function StepperDashboard({
@@ -63,17 +72,19 @@ export function StepperDashboard({
     initialServers.length > 0 ? "servers" : "stepper",
   );
 
-  // ── Stepper state ──
+  // Stepper form state
   const [serverName, setServerName] = useState("");
   const [mediaPath, setMediaPath] = useState("/media");
   const [createdServerId, setCreatedServerId] = useState<string | null>(null);
-  const [createdServerName, setCreatedServerName] = useState<string | null>(null);
+  const [createdServerName, setCreatedServerName] = useState<string | null>(
+    null,
+  );
   const [agents, setAgents] = useState<HostAgentDTO[]>(initialAgents);
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
-  const [isCreating, setIsCreating] = useState(false);
+  const [_isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // ── Access link state ──
+  // Access link state
   const [generatedLinks, setGeneratedLinks] = useState<
     { token: string; guestUrl: string }[]
   >([]);
@@ -82,20 +93,19 @@ export function StepperDashboard({
 
   const router = useRouter();
 
-  /* ── Poll for host agents while on the Connect step ── */
+  /* ── Poll for host agents ── */
   const pollAgents = useCallback(async () => {
     try {
       const result = await listMyHostAgents();
       if (result.ok) {
         setAgents(result.data);
-        // Auto-select the first online agent
         const online = result.data.find((a) => a.online);
         if (online && !selectedAgentId) {
           setSelectedAgentId(online.id);
         }
       }
     } catch {
-      // silent
+      /* silent */
     }
   }, [selectedAgentId]);
 
@@ -105,7 +115,7 @@ export function StepperDashboard({
     return () => clearInterval(interval);
   }, [view, pollAgents]);
 
-  /* ── Create server (called from onBeforeStepChange step 3→4) ── */
+  /* ── Create server ── */
   const handleCreateServer = async (): Promise<boolean> => {
     if (!serverName.trim() || !mediaPath.trim()) return false;
     setIsCreating(true);
@@ -120,14 +130,13 @@ export function StepperDashboard({
         setCreatedServerId(result.data.id);
         setCreatedServerName(result.data.name);
         return true;
-      } else {
-        setCreateError(
-          result.error === "host_not_found"
-            ? "Please connect a host first."
-            : "Could not create server. Try again.",
-        );
-        return false;
       }
+      setCreateError(
+        result.error === "host_not_found"
+          ? "Please connect a host first."
+          : "Could not create server. Try again.",
+      );
+      return false;
     } catch {
       setCreateError("Something went wrong. Try again.");
       return false;
@@ -136,7 +145,7 @@ export function StepperDashboard({
     }
   };
 
-  /* ── Generate access link (Step 4) ── */
+  /* ── Generate access link ── */
   const handleGenerateLink = async () => {
     if (!createdServerId) return;
     setIsGenerating(true);
@@ -152,13 +161,13 @@ export function StepperDashboard({
         ]);
       }
     } catch {
-      // silent
+      /* silent */
     } finally {
       setIsGenerating(false);
     }
   };
 
-  /* ── Copy to clipboard ── */
+  /* ── Clipboard ── */
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -171,21 +180,24 @@ export function StepperDashboard({
     try {
       const { deleteServerAction } = await import("@/server/actions/servers");
       const result = await deleteServerAction(serverId);
-      if (result.ok) {
-        router.refresh();
-        setView("stepper");
-      }
+      if (result.ok) router.refresh();
     } catch {
-      // silent
+      /* silent */
     }
   };
 
-  /* ── Navigate to server detail ── */
-  const goToServer = (serverId: string) => {
-    router.push(`/servers/${serverId}`);
+  /* ── Sign out ── */
+  const handleSignOut = () => {
+    authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => router.push("/sign-in"),
+      },
+    });
   };
 
-  /* ── Switch to stepper for new server ── */
+  /* ── Navigation ── */
+  const goToServer = (id: string) => router.push(`/servers/${id}`);
+
   const startNewServer = () => {
     setServerName("");
     setMediaPath("/media");
@@ -196,35 +208,41 @@ export function StepperDashboard({
     setView("stepper");
   };
 
+  const onlineAgents = agents.filter((a) => a.online);
+  const hasOnlineHost = onlineAgents.length > 0;
+
   /* ══════════════════════════════════════════════════════════════════ */
-  /*  SERVER LIST VIEW (returning users)                               */
+  /*  SERVER LIST VIEW                                                 */
   /* ══════════════════════════════════════════════════════════════════ */
 
   if (view === "servers") {
     return (
       <div className="flex min-h-screen flex-col bg-background">
-        {/* Header */}
-        <header className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div className="flex items-center gap-3">
+        {/* ── Top bar ── */}
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/80 px-6 py-3 backdrop-blur supports-backdrop-filter:bg-background/60">
+          <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
               <Server className="h-4 w-4 text-primary" />
             </div>
-            <h1 className="text-lg font-semibold tracking-tight">LANStream</h1>
+            <span className="text-sm font-semibold">LANStream</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">{user?.name}</span>
-            <SignOutButton />
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
+              <LogOut className="h-3.5 w-3.5" />
+              Sign out
+            </Button>
           </div>
         </header>
 
-        {/* Content */}
+        {/* ── Content ── */}
         <main className="flex-1 p-6 lg:p-8">
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto max-w-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">Your Servers</h2>
+                <h1 className="text-2xl font-bold tracking-tight">Your Servers</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Manage your media servers and share access with guests.
+                  Manage media servers and share access with guests.
                 </p>
               </div>
               <Button onClick={startNewServer} className="gap-2">
@@ -233,56 +251,66 @@ export function StepperDashboard({
               </Button>
             </div>
 
-            {/* Server cards */}
-            <div className="mt-8 space-y-3">
+            <div className="mt-6 space-y-3">
               {initialServers.map((server) => (
                 <Card
                   key={server.id}
-                  className="group flex items-center justify-between p-4 transition-colors hover:bg-accent/40"
+                  className="group cursor-pointer transition-colors hover:bg-accent/40"
                 >
-                  <button
-                    onClick={() => goToServer(server.id)}
-                    className="flex flex-1 items-center gap-4 text-left"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Server className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{server.name}</p>
-                      <div className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
-                        <FolderOpen className="h-3 w-3" />
-                        <span className="truncate">{server.mediaPath}</span>
+                  <CardContent className="flex items-center gap-4 py-4">
+                    <button
+                      onClick={() => goToServer(server.id)}
+                      className="flex flex-1 items-center gap-4 text-left"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <Server className="h-5 w-5 text-muted-foreground" />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <StatusBadge status={server.status} />
-                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                    </div>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteServer(server.id);
-                    }}
-                    className="ml-3 rounded-lg p-2 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                    title="Delete server"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">{server.name}</p>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <FolderOpen className="h-3 w-3" />
+                          <span className="truncate">{server.mediaPath}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <StatusBadge status={server.status} />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                      </div>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteServer(server.id);
+                      }}
+                      className="ml-2 h-8 w-8 shrink-0 p-0 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
                 </Card>
               ))}
 
               {initialServers.length === 0 && (
-                <div className="rounded-xl border border-dashed p-12 text-center">
-                  <Server className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    No servers yet. Create your first one to get started.
-                  </p>
-                  <Button onClick={startNewServer} className="mt-4 gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Server
-                  </Button>
-                </div>
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Server />
+                    </EmptyMedia>
+                    <EmptyTitle>No servers yet</EmptyTitle>
+                    <EmptyDescription>
+                      Create your first server to start streaming media across
+                      your local network.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button onClick={startNewServer} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Create Server
+                    </Button>
+                  </EmptyContent>
+                </Empty>
               )}
             </div>
           </div>
@@ -292,16 +320,13 @@ export function StepperDashboard({
   }
 
   /* ══════════════════════════════════════════════════════════════════ */
-  /*  STEPPER VIEW (onboarding / new server)                           */
+  /*  STEPPER VIEW                                                     */
   /* ══════════════════════════════════════════════════════════════════ */
-
-  const onlineAgents = agents.filter((a) => a.online);
-  const hasOnlineHost = onlineAgents.length > 0;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      {/* Minimal header */}
-      <div className="fixed left-0 right-0 top-0 flex items-center justify-between px-6 py-4">
+      {/* ── Minimal header ── */}
+      <div className="fixed left-0 right-0 top-0 z-10 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
             <Server className="h-3.5 w-3.5 text-primary" />
@@ -309,7 +334,11 @@ export function StepperDashboard({
           <span className="text-sm font-semibold">LANStream</span>
         </div>
         {initialServers.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => setView("servers")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setView("servers")}
+          >
             Back to servers
           </Button>
         )}
@@ -320,10 +349,8 @@ export function StepperDashboard({
         onStepChange={(step) => {
           if (step === 2) pollAgents();
         }}
-        onBeforeStepChange={async (current, next) => {
-          // Block advancing from step 2 unless a host is online
+        onBeforeStepChange={async (current) => {
           if (current === 2 && !hasOnlineHost) return false;
-          // Create server when advancing from step 3 → 4
           if (current === 3 && !createdServerId) {
             return await handleCreateServer();
           }
@@ -347,26 +374,17 @@ export function StepperDashboard({
               Set up your first server in 3 simple steps.
             </p>
             <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-[10px] font-bold">
-                  1
+              {["Connect", "Create", "Share"].map((label, i) => (
+                <div key={label} className="flex items-center gap-6">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Badge variant="secondary" className="h-8 w-8 justify-center rounded-full text-[10px] font-bold">
+                      {i + 1}
+                    </Badge>
+                    <span>{label}</span>
+                  </div>
+                  {i < 2 && <div className="h-px w-8 bg-border" />}
                 </div>
-                <span>Connect</span>
-              </div>
-              <div className="h-px w-8 bg-border" />
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-[10px] font-bold">
-                  2
-                </div>
-                <span>Create</span>
-              </div>
-              <div className="h-px w-8 bg-border" />
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-[10px] font-bold">
-                  3
-                </div>
-                <span>Share</span>
-              </div>
+              ))}
             </div>
           </div>
         </Step>
@@ -381,23 +399,28 @@ export function StepperDashboard({
               <h2 className="text-lg font-bold">Connect Your Host</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Open LANStream Host on your media computer to pair it.
-                The server will be created once a host is online.
               </p>
             </div>
 
             {/* Launch button */}
-            <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
-              <a
-                href={`lanstream://pair?portal=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <Monitor className="h-4 w-4" />
-                Launch LANStream Host
-              </a>
-              <p className="mt-2 text-xs text-muted-foreground">
-                If not installed yet, install it once on your media computer.
-              </p>
-            </div>
+            <Card>
+              <CardContent className="py-4 text-center">
+                <Button
+                  render={
+                    <a
+                      href={`lanstream://pair?portal=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`}
+                    />
+                  }
+                  className="gap-2"
+                >
+                  <Monitor className="h-4 w-4" />
+                  Launch LANStream Host
+                </Button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Install it once on your media computer if you have not yet.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Host status */}
             <div className="mt-4 space-y-2">
@@ -408,30 +431,30 @@ export function StepperDashboard({
                 </div>
               ) : (
                 agents.map((agent) => (
-                  <div
+                  <Card
                     key={agent.id}
-                    className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                      agent.online
-                        ? "border-primary/30 bg-primary/5"
-                        : "border-border"
-                    }`}
+                    className={agent.online ? "border-primary/30 bg-primary/5" : ""}
                   >
-                    <div className="flex items-center gap-2">
-                      {agent.online ? (
-                        <Wifi className="h-4 w-4 text-primary" />
-                      ) : (
-                        <WifiOff className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium">{agent.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {agent.hostname ?? "Connecting…"}
-                          {agent.localIp ? ` · ${agent.localIp}` : ""}
-                        </p>
+                    <CardContent className="flex items-center justify-between py-3">
+                      <div className="flex items-center gap-2">
+                        {agent.online ? (
+                          <Wifi className="h-4 w-4 text-primary" />
+                        ) : (
+                          <WifiOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className="text-sm font-medium">{agent.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {agent.hostname ?? "Connecting…"}
+                            {agent.localIp ? ` · ${agent.localIp}` : ""}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <StatusBadge status={agent.online ? "online" : "offline"} />
-                  </div>
+                      <StatusBadge
+                        status={agent.online ? "online" : "offline"}
+                      />
+                    </CardContent>
+                  </Card>
                 ))
               )}
             </div>
@@ -444,7 +467,7 @@ export function StepperDashboard({
           </div>
         </Step>
 
-        {/* ── Step 3: Create Server (after host is connected) ── */}
+        {/* ── Step 3: Create Server ── */}
         <Step>
           <div className="py-2">
             <div className="mb-4 text-center">
@@ -457,37 +480,37 @@ export function StepperDashboard({
               </p>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Server Name
-                </label>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="server-name">Server Name</Label>
                 <Input
+                  id="server-name"
                   value={serverName}
                   onChange={(e) => setServerName(e.target.value)}
                   placeholder="My Media Server"
                   autoFocus
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Media Path
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="media-path">Media Path</Label>
                 <Input
+                  id="media-path"
                   value={mediaPath}
                   onChange={(e) => setMediaPath(e.target.value)}
                   placeholder="/media"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Absolute path to your media folder on the host machine.
                 </p>
               </div>
             </div>
 
             {createError && (
-              <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-center text-xs text-destructive">
-                {createError}
-              </p>
+              <div className="mt-4">
+                <Badge variant="destructive" className="w-full justify-center py-1">
+                  {createError}
+                </Badge>
+              </div>
             )}
           </div>
         </Step>
@@ -505,69 +528,69 @@ export function StepperDashboard({
               </p>
             </div>
 
-            {/* Server info */}
+            {/* Created server info */}
             {createdServerName && (
-              <div className="mb-4 rounded-lg border border-border p-3">
-                <div className="flex items-center gap-2">
+              <Card className="mb-4">
+                <CardContent className="flex items-center gap-3 py-3">
                   <Server className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
                     {createdServerName}
                   </span>
                   <StatusBadge status="online" />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
 
-            {/* Generate link button */}
-            <button
+            {/* Generate button */}
+            <Button
+              variant="outline"
               onClick={handleGenerateLink}
               disabled={isGenerating}
-              className="w-full rounded-lg border border-border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
+              className="w-full justify-start gap-3 py-6"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                  <Share2 className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Create Guest Link</p>
-                  <p className="text-xs text-muted-foreground">
-                    Generate a shareable link for guests
-                  </p>
-                </div>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Share2 className="h-4 w-4 text-primary" />
               </div>
-            </button>
+              <div className="text-left">
+                <p className="text-sm font-medium">Create Guest Link</p>
+                <p className="text-xs text-muted-foreground">
+                  Generate a shareable link for guests
+                </p>
+              </div>
+            </Button>
 
             {/* Generated links */}
             {generatedLinks.length > 0 && (
               <div className="mt-4 space-y-2">
                 {generatedLinks.map((link, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg border border-primary/20 bg-primary/5 p-3"
-                  >
-                    <p className="mb-2 text-xs font-medium text-primary">
-                      Guest Share Link
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        readOnly
-                        value={link.guestUrl}
-                        className="min-w-0 flex-1 rounded border border-border bg-card px-2 py-1.5 font-mono text-xs"
-                      />
-                      <button
-                        onClick={() =>
-                          copyToClipboard(link.guestUrl, `url-${i}`)
-                        }
-                        className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-                      >
-                        {copiedId === `url-${i}` ? (
-                          <Check className="h-3.5 w-3.5 text-primary" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
+                  <Card key={i} className="border-primary/20 bg-primary/5">
+                    <CardContent className="py-3">
+                      <p className="mb-2 text-xs font-medium text-primary">
+                        Guest Share Link
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          readOnly
+                          value={link.guestUrl}
+                          className="font-mono text-xs"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            copyToClipboard(link.guestUrl, `url-${i}`)
+                          }
+                          className="shrink-0"
+                        >
+                          {copiedId === `url-${i}` ? (
+                            <Check className="h-3.5 w-3.5 text-primary" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
