@@ -14,19 +14,18 @@ export default async function ServerAccessPage({
   if (!serverResult.ok) notFound();
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Access Links</h2>
+        <div>
+          <h2 className="text-lg font-semibold">Access Links</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage guest file streaming access for {serverResult.data.name}.
+          </p>
+        </div>
         <CreateAccessLinkButton serverId={serverId} purpose="guest" />
       </div>
 
-      <p className="mt-1 text-sm text-muted-foreground">
-        Manage guest file streaming access for {serverResult.data.name}.
-      </p>
-
-      <div className="mt-6">
-        <AccessLinksList serverId={serverId} />
-      </div>
+      <AccessLinksList serverId={serverId} />
     </div>
   );
 }

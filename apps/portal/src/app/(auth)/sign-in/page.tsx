@@ -1,15 +1,18 @@
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignInForm } from "./_components/sign-in-form";
 
 export default function SignInPage() {
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-2xl font-bold">Sign In</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Welcome back to LANStream.</p>
-
-      <div className="mt-6">
-        <SignInForm />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Sign In</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SignInForm />
+        </CardContent>
+      </Card>
 
       <p className="mt-4 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}

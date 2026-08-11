@@ -1,17 +1,18 @@
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignUpForm } from "./_components/sign-up-form";
 
 export default function SignUpPage() {
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-2xl font-bold">Sign Up</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Create your LANStream account.
-      </p>
-
-      <div className="mt-6">
-        <SignUpForm />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Sign Up</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SignUpForm />
+        </CardContent>
+      </Card>
 
       <p className="mt-4 text-center text-sm text-muted-foreground">
         Already have an account?{" "}

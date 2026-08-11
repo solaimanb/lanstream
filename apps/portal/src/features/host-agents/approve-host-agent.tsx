@@ -11,7 +11,7 @@ export function ApproveHostAgent({ initialCode }: { initialCode: string }) {
   const [approved, setApproved] = useState(false);
   const [pending, startTransition] = useTransition();
   return (
-    <div className="mt-6 max-w-md rounded-xl border p-4">
+    <div className="max-w-md space-y-4">
       <label className="text-sm font-medium" htmlFor="pairing-code">
         Pairing code
       </label>

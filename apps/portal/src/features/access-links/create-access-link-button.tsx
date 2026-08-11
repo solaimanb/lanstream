@@ -4,6 +4,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createAccessLinkAction } from "@/server/actions/access-links";
 import { useState, useTransition } from "react";
 
@@ -53,15 +54,15 @@ export function CreateAccessLinkButton({
         {purpose === "host" ? "Create Host Token" : "Create Guest Link"}
       </Button>
       {createdToken && (
-        <div className="max-w-md rounded-md border border-accent bg-accent p-3 text-sm text-accent-foreground">
+        <div className="w-full max-w-md rounded-md border border-accent bg-accent p-3 text-sm text-accent-foreground">
           <p className="font-medium">Copy these now. The token will not be shown again.</p>
           <p className="mt-2 text-xs font-medium">
             {purpose === "host" ? "Host claim token" : "Guest access token"}
           </p>
           <div className="mt-2 flex gap-2">
-            <input
+            <Input
               aria-label="New access token"
-              className="min-w-0 flex-1 rounded border border-accent bg-card px-2 py-1 font-mono"
+              className="min-w-0 flex-1 font-mono"
               readOnly
               value={createdToken}
             />
@@ -77,9 +78,9 @@ export function CreateAccessLinkButton({
             <>
               <p className="mt-2 text-xs font-medium">Guest share link</p>
               <div className="mt-1 flex gap-2">
-                <input
+                <Input
                   aria-label="New guest share link"
-                  className="min-w-0 flex-1 rounded border border-accent bg-card px-2 py-1 font-mono"
+                  className="min-w-0 flex-1 font-mono"
                   readOnly
                   value={createdShareUrl}
                 />

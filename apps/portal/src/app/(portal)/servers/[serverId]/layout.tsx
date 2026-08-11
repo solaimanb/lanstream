@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getServerSession } from "@/server/auth/session";
 import { ensureServerOwnership } from "@/server/security/ownership";
 import { notFound, redirect } from "next/navigation";
+import { ServerTabs } from "./_components/server-tabs";
 
 export default async function ServerLayout({
   children,
@@ -14,26 +14,11 @@ export default async function ServerLayout({
   if (!ownership.ok) notFound();
 
   return (
-    <div>
-      {/* Sub-navigation */}
-      <nav className="mb-6 flex gap-4 border-b border-border">
-        <Tab href={`/servers/${serverId}`} label="Overview" />
-        <Tab href={`/servers/${serverId}/access`} label="Access Links" />
-        <Tab href={`/servers/${serverId}/settings`} label="Settings" />
-      </nav>
-
-      {children}
+    <div className="p-6 lg:p-8">
+      <div className="mx-auto max-w-2xl">
+        <ServerTabs serverId={serverId} />
+        <div className="mt-6">{children}</div>
+      </div>
     </div>
-  );
-}
-
-function Tab({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="-mb-px border-b-2 border-transparent px-1 pb-3 text-sm font-medium text-muted-foreground hover:text-foreground"
-    >
-      {label}
-    </Link>
   );
 }
