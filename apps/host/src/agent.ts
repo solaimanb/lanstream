@@ -27,6 +27,7 @@ export class HostAgent {
     token: string,
     private readonly basePort: number,
     private readonly fallbackIntervalMs: number,
+    private readonly localIp?: string,
   ) {
     this.client = new AgentClient(portalUrl, token);
   }
@@ -60,6 +61,7 @@ export class HostAgent {
     try {
       const { port: _port, ...hostDeviceInfo } = collectDeviceInfo(
         this.basePort,
+        this.localIp,
       );
       const response = await this.client.heartbeat({
         hostDeviceInfo,

@@ -59,6 +59,7 @@ async function main() {
       agentToken,
       config.port,
       config.heartbeatIntervalMs,
+      config.localIp,
     );
     hostAgent.start();
     console.log("[agent] Waiting for server assignments from the portal.");
