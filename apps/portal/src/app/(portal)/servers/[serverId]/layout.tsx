@@ -1,7 +1,6 @@
 import { getServerSession } from "@/server/auth/session";
 import { ensureServerOwnership } from "@/server/security/ownership";
 import { notFound, redirect } from "next/navigation";
-import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
 import { ServerTabs } from "./_components/server-tabs";
 import { getServerById } from "@/server/dal/servers";
 
@@ -15,18 +14,9 @@ export default async function ServerLayout({
   const ownership = await ensureServerOwnership(serverId, session.user.id);
   if (!ownership.ok) notFound();
 
-  const serverResult = await getServerById(serverId);
-  const serverName = serverResult.ok ? serverResult.data.name : "Server";
-
   return (
     <div className="p-6 lg:p-8">
       <div className="mx-auto max-w-2xl">
-        <Breadcrumbs
-          items={[
-            { label: "Servers", href: "/dashboard" },
-            { label: serverName },
-          ]}
-        />
         <ServerTabs serverId={serverId} />
         <div className="mt-6">{children}</div>
       </div>

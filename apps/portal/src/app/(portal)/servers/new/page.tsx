@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateServerForm } from "@/features/servers";
 import { getServerSession } from "@/server/auth/session";
 import { listHostAgentsByOwner } from "@/server/dal/host-agents";
-import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
 
 export default async function NewServerPage() {
   const session = await getServerSession();
@@ -10,11 +9,7 @@ export default async function NewServerPage() {
     ? await listHostAgentsByOwner(session.user.id)
     : [];
   return (
-    <div className="space-y-6">
-      <Breadcrumbs items={[
-        { label: "Servers", href: "/dashboard" },
-        { label: "New" },
-      ]} />
+    <div className="space-y-6 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Create Server</h1>
         <p className="mt-2 text-sm text-muted-foreground">
