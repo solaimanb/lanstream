@@ -95,6 +95,7 @@ services:
       LANSTREAM_CONFIG_PATH: /var/lib/lanstream/agent.json
       LANSTREAM_PORT: 4780
       LANSTREAM_MEDIA_PATH: /media
+      LANSTREAM_LOCAL_IP: ${LANSTREAM_LOCAL_IP:-}
     volumes:
       - media:/media
       - host-config:/var/lib/lanstream

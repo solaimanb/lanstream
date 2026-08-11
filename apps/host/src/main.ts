@@ -43,7 +43,7 @@ async function main() {
     console.log(
       "[agent] This host is not paired yet. Opening secure approval...",
     );
-    const { port: _port, ...hostDeviceInfo } = collectDeviceInfo(config.port);
+    const { port: _port, ...hostDeviceInfo } = collectDeviceInfo(config.port, config.localIp);
     agentToken = await new PairingClient(config.portalUrl).pair({
       requestedName: hostDeviceInfo.hostname,
       hostDeviceInfo,
@@ -79,7 +79,7 @@ async function main() {
   protocolClient = client;
 
   // ── 2. Claim a server ──
-  const deviceInfo = collectDeviceInfo(config.port);
+  const deviceInfo = collectDeviceInfo(config.port, config.localIp);
   console.log(`[host] Claiming server ${config.serverId}...`);
 
   const claimResult = await client.claim(deviceInfo);

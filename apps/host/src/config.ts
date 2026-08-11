@@ -30,6 +30,9 @@ const configSchema = z.object({
 
   /** Heartbeat interval in milliseconds. */
   heartbeatIntervalMs: z.coerce.number().int().min(5000).default(30_000),
+
+  /** Override for the local IP reported to the portal (useful in Docker). */
+  localIp: z.string().optional(),
 });
 
 export type HostConfig = z.infer<typeof configSchema>;
@@ -43,6 +46,7 @@ export function loadConfig(overrides: Partial<HostConfig> = {}): HostConfig {
     port: process.env.LANSTREAM_PORT ?? "4780",
     mediaPath: process.env.LANSTREAM_MEDIA_PATH ?? "./media",
     heartbeatIntervalMs: process.env.LANSTREAM_HEARTBEAT_MS ?? "30000",
+    localIp: process.env.LANSTREAM_LOCAL_IP || undefined,
     ...overrides,
   };
 

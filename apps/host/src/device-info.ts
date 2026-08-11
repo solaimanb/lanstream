@@ -42,12 +42,15 @@ function getPlatform(): string {
 }
 
 /** Collect host device information. */
-export function collectDeviceInfo(port: number): HostDeviceInfo {
+export function collectDeviceInfo(
+  port: number,
+  localIpOverride?: string,
+): HostDeviceInfo {
   return {
     hostname: hostname(),
     platform: getPlatform(),
     version: getVersion(),
-    localIp: getLocalIp(),
+    localIp: localIpOverride || getLocalIp(),
     port,
   };
 }
