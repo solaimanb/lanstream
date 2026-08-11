@@ -19,8 +19,12 @@ import {
   revokeAccessLink,
 } from "@/server/dal/access-links";
 import { getHostDeviceByServerId } from "@/server/dal/host-devices";
+import { getOwnedHostAgent } from "@/server/dal/host-agents";
 import { createAuditEvent } from "@/server/dal/audit-events";
 import { ensureServerOwnership } from "@/server/security/ownership";
+import { db } from "@/server/db/client";
+import { server } from "@/server/db/schema";
+import { eq } from "drizzle-orm";
 import {
   createAccessLinkSchema,
   revokeAccessLinkSchema,
@@ -75,14 +79,39 @@ export async function createAccessLinkAction(
     purpose: parsed.data.purpose,
   });
   const host = await getHostDeviceByServerId(parsed.data.serverId);
-  const hostAddress = host
-    ? host.localIp.includes(":")
+  let hostAddress: string | null = null;
+  let port: number | null = null;
+
+  if (host) {
+    hostAddress = host.localIp.includes(":")
       ? `[${host.localIp}]`
-      : host.localIp
-    : null;
-  const guestUrl = hostAddress && parsed.data.purpose === "guest"
-    ? `http://${hostAddress}:${host!.port}/watch#${new URLSearchParams({ token: link.token })}`
-    : null;
+      : host.localIp;
+    port = host.port;
+  } else {
+    // Host hasn't sent a heartbeat yet — fall back to agent + server records
+    const serverRow = await db
+      .select({ hostAgentId: server.hostAgentId, port: server.preferredPort })
+      .from(server)
+      .where(eq(server.id, parsed.data.serverId))
+      .limit(1);
+    if (serverRow[0]?.hostAgentId) {
+      const agent = await getOwnedHostAgent(
+        serverRow[0].hostAgentId,
+        session.user.id,
+      );
+      if (agent.ok && agent.data.localIp) {
+        hostAddress = agent.data.localIp.includes(":")
+          ? `[${agent.data.localIp}]`
+          : agent.data.localIp;
+        port = serverRow[0].port;
+      }
+    }
+  }
+
+  const guestUrl =
+    hostAddress && port && parsed.data.purpose === "guest"
+      ? `http://${hostAddress}:${port}/watch#${new URLSearchParams({ token: link.token })}`
+      : null;
 
   await createAuditEvent({
     userId: session.user.id,
