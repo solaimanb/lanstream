@@ -40,7 +40,7 @@ interface StepperProps {
 /* ------------------------------------------------------------------ */
 
 export function Step({ children }: { children: ReactNode }) {
-  return <div className="px-8 py-2">{children}</div>;
+  return <div className="px-1 py-2">{children}</div>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -116,11 +116,11 @@ export default function Stepper({
   return (
     <div className="flex min-h-full flex-1 flex-col items-center justify-center p-4">
       <div
-        className={`mx-auto w-full max-w-xl rounded-2xl border border-border bg-card shadow-lg ${stepCircleContainerClassName}`}
+        className={`mx-auto w-full max-w-2xl rounded-2xl border border-border bg-card shadow-lg ${stepCircleContainerClassName}`}
       >
         {/* Step indicators */}
         <div
-          className={`flex w-full items-center px-10 pt-8 pb-2 ${stepContainerClassName}`}
+          className={`flex w-full items-center px-12 pt-8 pb-2 ${stepContainerClassName}`}
         >
           {stepsArray.map((_, index) => {
             const stepNumber = index + 1;
@@ -160,14 +160,14 @@ export default function Stepper({
           isCompleted={isCompleted}
           currentStep={currentStep}
           direction={direction}
-          className={`space-y-2 px-8 ${contentClassName}`}
+          className={`space-y-2 px-10 ${contentClassName}`}
         >
           {stepsArray[currentStep - 1]}
         </StepContentWrapper>
 
         {/* Navigation buttons */}
         {!isCompleted && (
-          <div className={`px-8 pb-8 ${footerClassName}`}>
+          <div className={`px-10 pb-8 ${footerClassName}`}>
             <div
               className={`mt-6 flex ${
                 currentStep !== 1 ? "justify-between" : "justify-end"

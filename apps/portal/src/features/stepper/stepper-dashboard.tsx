@@ -15,8 +15,17 @@ import { useState, useEffect, useCallback } from "react";
 import Stepper, { Step } from "@/components/ui/stepper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyHeader,
@@ -36,6 +45,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { InputGroup, InputGroupInput, InputGroupAddon } from "@/components/ui/input-group";
+import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { StatusBadge } from "@/components/feedback/status-badge";
 import { createServerAction } from "@/server/actions/servers";
 import { createAccessLinkAction } from "@/server/actions/access-links";
@@ -45,7 +57,6 @@ import {
   FolderOpen,
   Plus,
   Copy,
-  Check,
   Monitor,
   Wifi,
   WifiOff,
@@ -53,9 +64,11 @@ import {
   ArrowRight,
   Trash2,
   LogOut,
+  ExternalLink,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { toast } from "@/components/ui/toast";
 import type { ServerDTO } from "@/types";
 import type { HostAgentDTO } from "@/server/dal/host-agents";
 
@@ -67,6 +80,21 @@ interface StepperDashboardProps {
   user: { name?: string | null; email?: string | null } | null;
   initialServers: ServerDTO[];
   initialAgents: HostAgentDTO[];
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function userInitials(name?: string | null, email?: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    return parts.length >= 2
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : parts[0].slice(0, 2).toUpperCase();
+  }
+  if (email) return email.slice(0, 2).toUpperCase();
+  return "U";
 }
 
 /* ------------------------------------------------------------------ */
@@ -99,7 +127,6 @@ export function StepperDashboard({
     { token: string; guestUrl: string }[]
   >([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -178,13 +205,12 @@ export function StepperDashboard({
   };
 
   /* ── Clipboard ── */
-  const copyToClipboard = async (text: string, id: string) => {
+  const copyToClipboard = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      toast.add({ title: `${label} copied`, type: "success" });
     } catch {
-      /* silent */
+      toast.add({ title: "Failed to copy", type: "error" });
     }
   };
 
@@ -220,7 +246,6 @@ export function StepperDashboard({
     setCreatedServerId(null);
     setCreatedServerName(null);
     setGeneratedLinks([]);
-    setCopiedId(null);
     setView("stepper");
   };
 
@@ -242,13 +267,32 @@ export function StepperDashboard({
             </div>
             <span className="text-sm font-semibold">LANStream</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">{user?.name}</span>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+              }
+            >
+              <Avatar size="sm">
+                <AvatarFallback>{userInitials(user?.name, user?.email)}</AvatarFallback>
+              </Avatar>
+              <span className="hidden text-sm font-medium sm:inline">
+                {user?.name ?? user?.email}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={8}>
+              <DropdownMenuLabel>
+                {user?.name ?? user?.email}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-1.5 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
 
         {/* ── Content ── */}
@@ -442,28 +486,32 @@ export function StepperDashboard({
             </div>
 
             {/* Launch button */}
-            <Card>
-              <CardContent className="flex flex-col items-center gap-2 py-4 text-center">
+            <Button
+              variant="outline"
+              className="w-full justify-center gap-2.5 py-6"
+              render={
                 <a
                   href={`lanstream://pair?portal=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  <Monitor className="h-4 w-4" />
-                  Launch LANStream Host
-                </a>
-                <p className="text-xs text-muted-foreground">
-                  Install it once on your media computer if you have not yet.
-                </p>
-              </CardContent>
-            </Card>
+                />
+              }
+            >
+              <Monitor className="h-4 w-4" />
+              Launch LANStream Host
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Install it once on your media computer if you have not yet.
+            </p>
 
             {/* Host status */}
             <div className="mt-4 space-y-2">
               {agents.length === 0 ? (
-                <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                  <WifiOff className="h-4 w-4" />
-                  <span>Waiting for host connection…</span>
-                </div>
+                <Card className="border-dashed">
+                  <CardContent className="flex items-center gap-3 py-4 text-center">
+                    <WifiOff className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Waiting for host connection…</p>
+                  </CardContent>
+                </Card>
               ) : (
                 agents.map((agent) => (
                   <Card
@@ -516,8 +564,8 @@ export function StepperDashboard({
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="server-name">Server Name</Label>
+              <Field>
+                <FieldLabel htmlFor="server-name">Server Name</FieldLabel>
                 <Input
                   id="server-name"
                   value={serverName}
@@ -525,19 +573,19 @@ export function StepperDashboard({
                   placeholder="My Media Server"
                   autoFocus
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="media-path">Media Path</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="media-path">Media Path</FieldLabel>
                 <Input
                   id="media-path"
                   value={mediaPath}
                   onChange={(e) => setMediaPath(e.target.value)}
                   placeholder="/media"
                 />
-                <p className="text-xs text-muted-foreground">
+                <FieldDescription>
                   Absolute path to your media folder on the host machine.
-                </p>
-              </div>
+                </FieldDescription>
+              </Field>
             </div>
 
             {createError && (
@@ -597,7 +645,7 @@ export function StepperDashboard({
             {/* Generated links */}
             {generatedLinks.length > 0 && (
               <div className="mt-4 space-y-3">
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-center text-xs text-muted-foreground">
                   Copy these now. The token will not be shown again.
                 </p>
                 {generatedLinks.map((link, i) => (
@@ -607,49 +655,57 @@ export function StepperDashboard({
                         <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                           Guest Access Token
                         </p>
-                        <div className="flex gap-2">
-                          <Input
+                        <InputGroup>
+                          <InputGroupInput
                             readOnly
                             value={link.token}
                             className="font-mono text-xs"
                           />
-                          <Button
-                            variant="outline"
-                            size="icon-sm"
-                            onClick={() => copyToClipboard(link.token, `token-${i}`)}
-                            className="shrink-0"
-                          >
-                            {copiedId === `token-${i}` ? (
-                              <Check className="h-3.5 w-3.5 text-green-600" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        </div>
+                          <InputGroupAddon align="inline-end">
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(link.token, "Token")}
+                                    className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                                  />
+                                }
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </TooltipTrigger>
+                              <TooltipContent>Copy token</TooltipContent>
+                            </Tooltip>
+                          </InputGroupAddon>
+                        </InputGroup>
                       </div>
                       <div>
                         <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                           Guest Share Link
                         </p>
-                        <div className="flex gap-2">
-                          <Input
+                        <InputGroup>
+                          <InputGroupInput
                             readOnly
                             value={link.guestUrl}
                             className="font-mono text-xs"
                           />
-                          <Button
-                            variant="outline"
-                            size="icon-sm"
-                            onClick={() => copyToClipboard(link.guestUrl, `url-${i}`)}
-                            className="shrink-0"
-                          >
-                            {copiedId === `url-${i}` ? (
-                              <Check className="h-3.5 w-3.5 text-green-600" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        </div>
+                          <InputGroupAddon align="inline-end">
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(link.guestUrl, "Link")}
+                                    className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                                  />
+                                }
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </TooltipTrigger>
+                              <TooltipContent>Copy link</TooltipContent>
+                            </Tooltip>
+                          </InputGroupAddon>
+                        </InputGroup>
                       </div>
                     </CardContent>
                   </Card>
