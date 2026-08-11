@@ -48,13 +48,11 @@ export function AppSidebar() {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    asChild
+                    render={<Link href={item.href} />}
                     isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
                   >
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
+                    <item.icon />
+                    <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -66,8 +64,8 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/sign-in">Sign In</Link>
+            <SidebarMenuButton render={<Link href="/sign-in" />}>
+              Sign In
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
