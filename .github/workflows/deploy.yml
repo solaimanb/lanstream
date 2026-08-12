@@ -1,0 +1,37 @@
+# LANStream — Deploy to VPS on push to main
+#
+# Requires repository secrets:
+#   DEPLOY_SSH_KEY   — Private SSH key for the deploy user
+#   DEPLOY_HOST      — VPS IP or hostname (212.47.73.237)
+#   DEPLOY_USER      — SSH username (ubuntu)
+
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /var/www/lanstream
+            git fetch origin main
+            git reset --hard origin/main
+            cd infrastructure/compose
+            sg docker -c "docker compose -f compose.prod.yaml --env-file ../.env up --no-deps migrate"
+            sg docker -c "docker compose -f compose.prod.yaml --env-file ../.env up -d --build"
+            sg docker -c "docker image prune -f"
+            echo "✅ Deploy complete — $(date)"
