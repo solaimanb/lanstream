@@ -32,13 +32,6 @@ export function PairHostDialog({ open, onOpenChange }: PairHostDialogProps) {
     typeof window !== "undefined" ? window.location.origin : "";
   const lanstreamUrl = `lanstream://pair?portal=${encodeURIComponent(portalOrigin)}`;
 
-  const handleLaunchProtocol = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (typeof window !== "undefined") {
-      window.location.href = lanstreamUrl;
-    }
-  };
-
   const handlePairSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^\d{4}-\d{4}$/.test(pairingCode)) {
@@ -82,10 +75,9 @@ export function PairHostDialog({ open, onOpenChange }: PairHostDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Quick launch button / link */}
+          {/* Native Cross-Browser Protocol Launcher Link */}
           <a
             href={lanstreamUrl}
-            onClick={handleLaunchProtocol}
             className={cn(
               buttonVariants({ variant: "outline" }),
               "w-full justify-center gap-2 py-5 font-medium cursor-pointer"
