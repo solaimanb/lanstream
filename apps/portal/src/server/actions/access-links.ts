@@ -8,6 +8,7 @@
 
 import type { Result } from "@/lib/result";
 import { err } from "@/lib/result";
+import { logger } from "@/lib/logger";
 import { getServerSession } from "@/server/auth/session";
 import type {
   AccessLinkDTO,
@@ -36,7 +37,7 @@ async function safeAuditEvent(params: Parameters<typeof createAuditEvent>[0]) {
   try {
     await createAuditEvent(params);
   } catch (err) {
-    console.error("Failed to write audit event:", err);
+    logger.error("AUDIT", "Failed to write audit event", err);
   }
 }
 
@@ -122,6 +123,10 @@ export async function createAccessLinkAction(
       ? `http://${hostAddress}:${port}/watch#${new URLSearchParams({ token: link.token })}`
       : null;
 
+  logger.info("ACTION", `Created access link ID ${link.id} for server ${parsed.data.serverId}`, {
+    userId: session.user.id,
+  });
+
   await safeAuditEvent({
     userId: session.user.id,
     action: "access_link.created",
@@ -157,6 +162,8 @@ export async function revokeAccessLinkAction(
     parsed.data.serverId,
   );
   if (!result.ok) return err(result.error);
+
+  logger.info("ACTION", `Revoked access link ID ${parsed.data.linkId}`, { userId: session.user.id });
 
   await safeAuditEvent({
     userId: session.user.id,

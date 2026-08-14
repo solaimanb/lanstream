@@ -7,19 +7,24 @@
  */
 export const dynamic = "force-dynamic";
 
+import { logger } from "@/lib/logger";
 import { handleClaim } from "@/server/runtime/claim";
 import { extractBearerToken } from "@/server/security/tokens";
 import { enforceRequestRateLimit } from "@/server/security/request-rate-limit";
 
 export async function POST(request: Request) {
   const rateLimited = enforceRequestRateLimit(request, "runtime:claim", 10);
-  if (rateLimited) return rateLimited;
+  if (rateLimited) {
+    logger.warn("RUNTIME", "Rate limit exceeded on runtime:claim");
+    return rateLimited;
+  }
   const body = await request.json().catch(() => null);
   const authHeader = request.headers.get("authorization");
   const accessToken = extractBearerToken(authHeader);
 
   const result = await handleClaim(body, accessToken);
   if (!result.ok) {
+    logger.warn("RUNTIME", `Host claim failed: ${result.error}`);
     const status =
       result.error === "unauthorized"
         ? 401
@@ -39,5 +44,7 @@ export async function POST(request: Request) {
       { status },
     );
   }
+
+  logger.info("RUNTIME", `Host claimed server ID: ${result.data.serverId}`);
   return Response.json({ data: result.data, error: null });
 }

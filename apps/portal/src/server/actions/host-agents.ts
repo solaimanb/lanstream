@@ -2,6 +2,7 @@
 
 import type { Result } from "@/lib/result";
 import { err, ok } from "@/lib/result";
+import { logger } from "@/lib/logger";
 import { getServerSession } from "@/server/auth/session";
 import { approveAgentPairing } from "@/server/dal/agent-pairings";
 import { createAuditEvent } from "@/server/dal/audit-events";
@@ -18,7 +19,7 @@ async function safeAuditEvent(params: Parameters<typeof createAuditEvent>[0]) {
   try {
     await createAuditEvent(params);
   } catch (err) {
-    console.error("Failed to write audit event:", err);
+    logger.error("AUDIT", "Failed to write audit event", err);
   }
 }
 
@@ -38,15 +39,27 @@ export async function approveHostAgentAction(
   Result<{ requestedName: string }, "unauthorized" | "invalid" | "expired">
 > {
   const session = await getServerSession();
-  if (!session?.user) return err("unauthorized");
+  if (!session?.user) {
+    logger.warn("ACTION", "Unauthenticated attempt to approve host agent");
+    return err("unauthorized");
+  }
   const parsed = z
     .string()
     .trim()
     .regex(/^\d{4}-\d{4}$/)
     .safeParse(userCode);
-  if (!parsed.success) return err("invalid");
+  if (!parsed.success) {
+    logger.warn("ACTION", "Invalid pairing code format submitted", { userCode });
+    return err("invalid");
+  }
   const result = await approveAgentPairing(parsed.data, session.user.id);
-  if (!result.ok) return result;
+  if (!result.ok) {
+    logger.warn("ACTION", `Pairing approval failed: ${result.error}`, { userCode: parsed.data });
+    return result;
+  }
+  logger.info("ACTION", `Approved host agent pairing "${result.data.requestedName}"`, {
+    userId: session.user.id,
+  });
   await safeAuditEvent({
     userId: session.user.id,
     action: "host_agent.approved",
@@ -65,6 +78,7 @@ export async function revokeHostAgentAction(
   if (!parsed.success) return err("not_found");
   const result = await deleteOwnedHostAgent(parsed.data, session.user.id);
   if (!result.ok) return result;
+  logger.info("ACTION", `Revoked host agent ID ${parsed.data}`, { userId: session.user.id });
   await safeAuditEvent({
     userId: session.user.id,
     action: "host_agent.revoked",

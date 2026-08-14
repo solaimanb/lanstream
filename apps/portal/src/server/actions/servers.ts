@@ -8,6 +8,7 @@
 
 import type { Result } from "@/lib/result";
 import { err, ok } from "@/lib/result";
+import { logger } from "@/lib/logger";
 import { getServerSession } from "@/server/auth/session";
 import { createAuditEvent } from "@/server/dal/audit-events";
 import { ensureServerOwnership } from "@/server/security/ownership";
@@ -34,7 +35,7 @@ async function safeAuditEvent(params: Parameters<typeof createAuditEvent>[0]) {
   try {
     await createAuditEvent(params);
   } catch (err) {
-    console.error("Failed to write audit event:", err);
+    logger.error("AUDIT", "Failed to write audit event", err);
   }
 }
 
@@ -55,10 +56,16 @@ export async function createServerAction(
   Result<ServerDTO, "validation_error" | "unauthorized" | "host_not_found">
 > {
   const session = await getServerSession();
-  if (!session?.user) return err("unauthorized");
+  if (!session?.user) {
+    logger.warn("ACTION", "Unauthenticated attempt to create server");
+    return err("unauthorized");
+  }
 
   const parsed = createServerSchema.safeParse(input);
-  if (!parsed.success) return err("validation_error");
+  if (!parsed.success) {
+    logger.warn("ACTION", "Validation failed on createServerAction", { issues: parsed.error.issues });
+    return err("validation_error");
+  }
 
   let preferredPort: number | undefined;
   if (parsed.data.hostAgentId) {
@@ -66,7 +73,10 @@ export async function createServerAction(
       parsed.data.hostAgentId,
       session.user.id,
     );
-    if (!host.ok) return err("host_not_found");
+    if (!host.ok) {
+      logger.warn("ACTION", `Host agent ID ${parsed.data.hostAgentId} not found or not owned`);
+      return err("host_not_found");
+    }
     preferredPort = await allocateHostPort(parsed.data.hostAgentId);
   }
 
@@ -77,6 +87,8 @@ export async function createServerAction(
     hostAgentId: parsed.data.hostAgentId,
     preferredPort,
   });
+
+  logger.info("ACTION", `Created server "${server.name}" (ID: ${server.id})`, { userId: session.user.id });
 
   await safeAuditEvent({
     userId: session.user.id,
@@ -112,6 +124,8 @@ export async function updateServerAction(
   const result = await updateServer(serverId, parsed.data);
   if (!result.ok) return err(result.error);
 
+  logger.info("ACTION", `Updated server ID ${serverId}`, { userId: session.user.id });
+
   await safeAuditEvent({
     userId: session.user.id,
     action: "server.updated",
@@ -136,6 +150,8 @@ export async function deleteServerAction(
 
   const result = await deleteServer(serverId);
   if (!result.ok) return err(result.error);
+
+  logger.info("ACTION", `Deleted server ID ${serverId}`, { userId: session.user.id });
 
   await safeAuditEvent({
     userId: session.user.id,

@@ -2,6 +2,7 @@
  * Host release route handler.
  * LAN Hosts notify when they go offline.
  */
+import { logger } from "@/lib/logger";
 import { handleRelease } from "@/server/runtime/release";
 import { extractBearerToken } from "@/server/security/tokens";
 import { enforceRequestRateLimit } from "@/server/security/request-rate-limit";
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
   const accessToken = extractBearerToken(request.headers.get("authorization"));
   const result = await handleRelease(body, accessToken);
   if (!result.ok) {
+    logger.warn("RUNTIME", `Host release failed: ${result.error}`);
     const status =
       result.error === "unauthorized" || result.error === "token_expired"
         ? 401
@@ -29,5 +31,7 @@ export async function POST(request: Request) {
       { status },
     );
   }
+
+  logger.info("RUNTIME", "Host released device registration cleanly");
   return Response.json({ data: { released: true }, error: null });
 }

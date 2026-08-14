@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 /**
  * LANStream Proxy — lightweight pre-routing request logic.
@@ -36,6 +37,7 @@ export function proxy(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (sessionToken && (pathname === "/sign-in" || pathname === "/sign-up")) {
+    logger.info("PROXY", `Authenticated user redirected from ${pathname} to /dashboard`);
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -46,6 +48,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/hosts");
 
   if (!sessionToken && isPortalRoute) {
+    logger.warn("PROXY", `Unauthenticated access attempt to ${pathname}, redirecting to /sign-in`);
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 

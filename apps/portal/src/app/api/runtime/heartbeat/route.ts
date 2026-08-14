@@ -5,6 +5,7 @@
  */
 export const dynamic = "force-dynamic";
 
+import { logger } from "@/lib/logger";
 import { handleHeartbeat } from "@/server/runtime/heartbeat";
 import { extractBearerToken } from "@/server/security/tokens";
 import { enforceRequestRateLimit } from "@/server/security/request-rate-limit";
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
   const accessToken = extractBearerToken(request.headers.get("authorization"));
   const result = await handleHeartbeat(body, accessToken);
   if (!result.ok) {
+    logger.warn("RUNTIME", `Heartbeat tick failed: ${result.error}`);
     const status =
       result.error === "unauthorized" || result.error === "token_expired"
         ? 401
@@ -33,5 +35,7 @@ export async function POST(request: Request) {
       { status },
     );
   }
+
+  logger.debug("RUNTIME", `Heartbeat acknowledged for media path: ${result.data.mediaPath}`);
   return Response.json({ data: result.data, error: null });
 }

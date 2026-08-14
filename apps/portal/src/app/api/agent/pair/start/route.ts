@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { PORTAL_URL } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { createAgentPairing } from "@/server/dal/agent-pairings";
 import { enforceRequestRateLimit } from "@/server/security/request-rate-limit";
 import { z } from "zod";
@@ -17,9 +18,13 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   const rateLimited = enforceRequestRateLimit(request, "agent:pair:start", 20);
-  if (rateLimited) return rateLimited;
+  if (rateLimited) {
+    logger.warn("PAIRING", "Rate limit exceeded on agent:pair:start");
+    return rateLimited;
+  }
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
+    logger.warn("PAIRING", "Invalid agent:pair:start payload", { issues: parsed.error.issues });
     return Response.json(
       {
         data: null,
@@ -34,6 +39,12 @@ export async function POST(request: Request) {
   });
   const verificationUrl = new URL("/hosts/pair", PORTAL_URL);
   verificationUrl.searchParams.set("code", pairing.userCode);
+
+  logger.info("PAIRING", `Started pairing request for "${parsed.data.requestedName}"`, {
+    userCode: pairing.userCode,
+    hostname: parsed.data.hostDeviceInfo.hostname,
+  });
+
   return Response.json({
     data: {
       pairingSecret: pairing.secret,
