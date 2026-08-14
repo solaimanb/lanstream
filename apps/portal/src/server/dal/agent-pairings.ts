@@ -3,7 +3,7 @@ import { err, ok } from "@/lib/result";
 import { db } from "@/server/db/client";
 import { agentPairing, hostAgent } from "@/server/db/schema";
 import { generateToken, hashToken } from "@/server/security/tokens";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import "server-only";
 import { nanoid } from "./utils";
@@ -78,6 +78,36 @@ export async function approveAgentPairing(
     )
     .returning({ requestedName: agentPairing.requestedName });
   return approved[0] ? ok(approved[0]) : err("invalid");
+}
+
+export async function approveLatestPendingAgentPairing(
+  ownerId: string,
+): Promise<Result<{ requestedName: string }, "none_pending">> {
+  const now = new Date();
+  const rows = await db
+    .select()
+    .from(agentPairing)
+    .where(
+      and(
+        eq(agentPairing.status, "pending"),
+        gt(agentPairing.expiresAt, now),
+      ),
+    )
+    .orderBy(desc(agentPairing.createdAt))
+    .limit(1);
+
+  const pairing = rows[0];
+  if (!pairing) return err("none_pending");
+
+  const approved = await db
+    .update(agentPairing)
+    .set({ status: "approved", ownerId, approvedAt: now })
+    .where(
+      and(eq(agentPairing.id, pairing.id), eq(agentPairing.status, "pending")),
+    )
+    .returning({ requestedName: agentPairing.requestedName });
+
+  return approved[0] ? ok(approved[0]) : err("none_pending");
 }
 
 export type PairingPollResult =

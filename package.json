@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter @lanstream/portal dev",
+    "dev:all": "pnpm --parallel --filter @lanstream/portal --filter @lanstream/host dev",
     "build": "pnpm --filter @lanstream/portal build",
     "start": "pnpm --filter @lanstream/portal start",
     "lint": "pnpm -r run lint",

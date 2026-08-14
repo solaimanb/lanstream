@@ -4,7 +4,10 @@ import type { Result } from "@/lib/result";
 import { err, ok } from "@/lib/result";
 import { logger } from "@/lib/logger";
 import { getServerSession } from "@/server/auth/session";
-import { approveAgentPairing } from "@/server/dal/agent-pairings";
+import {
+  approveAgentPairing,
+  approveLatestPendingAgentPairing,
+} from "@/server/dal/agent-pairings";
 import { createAuditEvent } from "@/server/dal/audit-events";
 import {
   deleteOwnedHostAgent,
@@ -63,6 +66,31 @@ export async function approveHostAgentAction(
   await safeAuditEvent({
     userId: session.user.id,
     action: "host_agent.approved",
+    targetType: "agent_pairing",
+    metadata: { name: result.data.requestedName },
+  });
+  return result;
+}
+
+export async function autoPairLatestHostAction(): Promise<
+  Result<{ requestedName: string }, "unauthorized" | "none_pending">
+> {
+  const session = await getServerSession();
+  if (!session?.user) {
+    logger.warn("ACTION", "Unauthenticated attempt to auto-pair host agent");
+    return err("unauthorized");
+  }
+  const result = await approveLatestPendingAgentPairing(session.user.id);
+  if (!result.ok) {
+    logger.info("ACTION", "Auto-pair found no pending host pairings");
+    return result;
+  }
+  logger.info("ACTION", `Auto-paired pending host agent "${result.data.requestedName}"`, {
+    userId: session.user.id,
+  });
+  await safeAuditEvent({
+    userId: session.user.id,
+    action: "host_agent.auto_paired",
     targetType: "agent_pairing",
     metadata: { name: result.data.requestedName },
   });

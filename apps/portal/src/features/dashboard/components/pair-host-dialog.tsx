@@ -12,10 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { approveHostAgentAction } from "@/server/actions/host-agents";
+import {
+  approveHostAgentAction,
+  autoPairLatestHostAction,
+} from "@/server/actions/host-agents";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { Monitor, ExternalLink, KeyRound, Info } from "lucide-react";
+import { Monitor, ExternalLink, KeyRound, Info, Zap } from "lucide-react";
 
 interface PairHostDialogProps {
   open: boolean;
@@ -35,8 +38,30 @@ export function PairHostDialog({ open, onOpenChange }: PairHostDialogProps) {
   const handleLaunchClick = () => {
     toast.add({
       title: "Opening LANStream Host",
-      description: "If the application doesn't open automatically, launch LANStream Host manually and enter its 8-digit code below.",
+      description: "If the application doesn't open automatically, click 'Auto-Detect Host' or enter its 8-digit code below.",
       type: "info",
+    });
+  };
+
+  const handleAutoPair = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await autoPairLatestHostAction();
+      if (result.ok) {
+        toast.add({
+          title: "Host Auto-Paired!",
+          description: `Successfully connected "${result.data.requestedName}".`,
+          type: "success",
+        });
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        toast.add({
+          title: "No Host Found",
+          description: "No pending host pairing requests detected. Make sure LANStream Host is running on your machine.",
+          type: "warning",
+        });
+      }
     });
   };
 
@@ -89,10 +114,20 @@ export function PairHostDialog({ open, onOpenChange }: PairHostDialogProps) {
             <div>
               <p className="font-semibold">How to pair a host machine:</p>
               <p className="mt-0.5 text-muted-foreground">
-                Run <strong>LANStream Host</strong> on your media PC. It will generate an 8-digit pairing code (e.g. <code>1234-5678</code>). Enter that code below to approve the pairing.
+                Run <strong>LANStream Host</strong> on your media PC. Click <strong>Auto-Detect Host</strong> or enter its 8-digit code below.
               </p>
             </div>
           </div>
+
+          {/* 1-Click Auto-Detect Button */}
+          <Button
+            onClick={handleAutoPair}
+            disabled={isPending}
+            className="w-full justify-center gap-2 py-5 font-semibold"
+          >
+            <Zap className="h-4 w-4 fill-primary-foreground" />
+            Auto-Detect & Approve Pending Host
+          </Button>
 
           {/* Quick launch link */}
           <a
@@ -113,7 +148,7 @@ export function PairHostDialog({ open, onOpenChange }: PairHostDialogProps) {
               <span className="w-full border-t border-border" />
             </div>
             <span className="relative bg-background px-2 text-xs text-muted-foreground font-medium">
-              or enter pairing code
+              or enter pairing code manually
             </span>
           </div>
 
