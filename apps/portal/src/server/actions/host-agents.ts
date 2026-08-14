@@ -13,6 +13,15 @@ import type { HostAgentDTO } from "@/server/dal/host-agents";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+/** Safe non-blocking audit event creation wrapper */
+async function safeAuditEvent(params: Parameters<typeof createAuditEvent>[0]) {
+  try {
+    await createAuditEvent(params);
+  } catch (err) {
+    console.error("Failed to write audit event:", err);
+  }
+}
+
 /** List host agents owned by the current user. */
 export async function listMyHostAgents(): Promise<
   Result<HostAgentDTO[], "unauthorized">
@@ -38,7 +47,7 @@ export async function approveHostAgentAction(
   if (!parsed.success) return err("invalid");
   const result = await approveAgentPairing(parsed.data, session.user.id);
   if (!result.ok) return result;
-  await createAuditEvent({
+  await safeAuditEvent({
     userId: session.user.id,
     action: "host_agent.approved",
     targetType: "agent_pairing",
@@ -56,7 +65,7 @@ export async function revokeHostAgentAction(
   if (!parsed.success) return err("not_found");
   const result = await deleteOwnedHostAgent(parsed.data, session.user.id);
   if (!result.ok) return result;
-  await createAuditEvent({
+  await safeAuditEvent({
     userId: session.user.id,
     action: "host_agent.revoked",
     targetType: "host_agent",

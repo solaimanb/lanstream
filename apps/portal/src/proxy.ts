@@ -41,7 +41,9 @@ export function proxy(request: NextRequest) {
 
   // Redirect unauthenticated users away from portal pages
   const isPortalRoute =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/servers");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/servers") ||
+    pathname.startsWith("/hosts");
 
   if (!sessionToken && isPortalRoute) {
     return NextResponse.redirect(new URL("/sign-in", request.url));

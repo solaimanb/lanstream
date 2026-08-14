@@ -9,7 +9,7 @@ import { err, ok } from "@/lib/result";
 import { db } from "@/server/db/client";
 import { accessLink } from "@/server/db/schema";
 import { hashToken, generateToken } from "@/server/security/tokens";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
 import "server-only";
 import { nanoid } from "./utils";
 
@@ -83,19 +83,18 @@ export async function validateAccessToken(
 export async function listActiveAccessTokenHashes(
   serverId: string,
 ): Promise<string[]> {
+  const now = new Date();
   const rows = await db
-    .select({ tokenHash: accessLink.tokenHash, expiresAt: accessLink.expiresAt })
+    .select({ tokenHash: accessLink.tokenHash })
     .from(accessLink)
     .where(
       and(
         eq(accessLink.serverId, serverId),
         eq(accessLink.purpose, "guest"),
+        or(isNull(accessLink.expiresAt), gt(accessLink.expiresAt, now)),
       ),
     );
-  const now = new Date();
-  return rows
-    .filter((row) => !row.expiresAt || row.expiresAt > now)
-    .map((row) => row.tokenHash);
+  return rows.map((row) => row.tokenHash);
 }
 
 /** List all access links for a server. */

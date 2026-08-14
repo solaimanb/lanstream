@@ -3,7 +3,10 @@
  * LAN Hosts claim their server registration.
  *
  * Requires a valid access token in the Authorization header.
+ * Must NOT be cached.
  */
+export const dynamic = "force-dynamic";
+
 import { handleClaim } from "@/server/runtime/claim";
 import { extractBearerToken } from "@/server/security/tokens";
 import { enforceRequestRateLimit } from "@/server/security/request-rate-limit";

@@ -8,11 +8,15 @@ export const dynamic = "force-dynamic";
 import { getHostDeviceByServerId } from "@/server/dal/host-devices";
 import { getServerSession } from "@/server/auth/session";
 import { ensureServerOwnership } from "@/server/security/ownership";
+import { enforceRequestRateLimit } from "@/server/security/request-rate-limit";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: RouteContext<"/api/servers/[serverId]/status">,
 ) {
+  const rateLimited = enforceRequestRateLimit(request, "server:status", 60);
+  if (rateLimited) return rateLimited;
+
   const { serverId } = await context.params;
   const session = await getServerSession();
   if (!session?.user) {

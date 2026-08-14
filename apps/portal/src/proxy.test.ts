@@ -79,6 +79,14 @@ describe("Proxy", () => {
       expect(response.headers.get("location")).toContain("/sign-in");
     });
 
+    it("redirects unauthenticated users from hosts to sign-in", () => {
+      const req = createMockRequest("/hosts");
+      const response = proxy(req);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toContain("/sign-in");
+    });
+
     it("allows authenticated users to access portal pages", () => {
       const req = createMockRequest("/dashboard", "standard");
       const response = proxy(req);

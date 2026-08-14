@@ -31,6 +31,15 @@ import {
 } from "@/server/validation/access-links";
 import { revalidatePath } from "next/cache";
 
+/** Safe non-blocking audit event creation wrapper */
+async function safeAuditEvent(params: Parameters<typeof createAuditEvent>[0]) {
+  try {
+    await createAuditEvent(params);
+  } catch (err) {
+    console.error("Failed to write audit event:", err);
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Actions                                                            */
 /* ------------------------------------------------------------------ */
@@ -113,7 +122,7 @@ export async function createAccessLinkAction(
       ? `http://${hostAddress}:${port}/watch#${new URLSearchParams({ token: link.token })}`
       : null;
 
-  await createAuditEvent({
+  await safeAuditEvent({
     userId: session.user.id,
     action: "access_link.created",
     targetType: "access_link",
@@ -149,7 +158,7 @@ export async function revokeAccessLinkAction(
   );
   if (!result.ok) return err(result.error);
 
-  await createAuditEvent({
+  await safeAuditEvent({
     userId: session.user.id,
     action: "access_link.revoked",
     targetType: "access_link",

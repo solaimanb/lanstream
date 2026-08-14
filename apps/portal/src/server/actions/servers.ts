@@ -7,7 +7,7 @@
 "use server";
 
 import type { Result } from "@/lib/result";
-import { err } from "@/lib/result";
+import { err, ok } from "@/lib/result";
 import { getServerSession } from "@/server/auth/session";
 import { createAuditEvent } from "@/server/dal/audit-events";
 import { ensureServerOwnership } from "@/server/security/ownership";
@@ -29,11 +29,23 @@ import { revalidatePath } from "next/cache";
 /*  Actions                                                            */
 /* ------------------------------------------------------------------ */
 
+/** Safe non-blocking audit event creation wrapper */
+async function safeAuditEvent(params: Parameters<typeof createAuditEvent>[0]) {
+  try {
+    await createAuditEvent(params);
+  } catch (err) {
+    console.error("Failed to write audit event:", err);
+  }
+}
+
 /** List servers owned by the current user. */
-export async function listMyServers(): Promise<ServerDTO[]> {
+export async function listMyServers(): Promise<
+  Result<ServerDTO[], "unauthorized">
+> {
   const session = await getServerSession();
-  if (!session?.user) throw new Error("Unauthorized");
-  return listServersByOwner(session.user.id);
+  if (!session?.user) return err("unauthorized");
+  const servers = await listServersByOwner(session.user.id);
+  return ok(servers);
 }
 
 /** Create a new server. */
@@ -66,7 +78,7 @@ export async function createServerAction(
     preferredPort,
   });
 
-  await createAuditEvent({
+  await safeAuditEvent({
     userId: session.user.id,
     action: "server.created",
     targetType: "server",
@@ -100,7 +112,7 @@ export async function updateServerAction(
   const result = await updateServer(serverId, parsed.data);
   if (!result.ok) return err(result.error);
 
-  await createAuditEvent({
+  await safeAuditEvent({
     userId: session.user.id,
     action: "server.updated",
     targetType: "server",
@@ -125,7 +137,7 @@ export async function deleteServerAction(
   const result = await deleteServer(serverId);
   if (!result.ok) return err(result.error);
 
-  await createAuditEvent({
+  await safeAuditEvent({
     userId: session.user.id,
     action: "server.deleted",
     targetType: "server",

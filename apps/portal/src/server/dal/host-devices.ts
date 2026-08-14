@@ -77,30 +77,13 @@ export async function getHostDeviceByServerId(
 /*  Write operations                                                   */
 /* ------------------------------------------------------------------ */
 
-/** Upsert a host device (claim or update). */
+/** Upsert a host device atomically (claim or update). */
 export async function upsertHostDevice(input: {
   serverId: string;
   info: HostDeviceInfo;
 }): Promise<HostDeviceDTO> {
-  const existing = await getHostDeviceByServerId(input.serverId);
-
-  if (existing) {
-    const rows = await db
-      .update(hostDevice)
-      .set({
-        hostname: input.info.hostname,
-        platform: input.info.platform,
-        version: input.info.version,
-        localIp: input.info.localIp,
-        port: input.info.port,
-        lastSeenAt: new Date(),
-      })
-      .where(eq(hostDevice.id, existing.id))
-      .returning();
-    return toDTO(rows[0]);
-  }
-
   const id = nanoid();
+  const now = new Date();
   const rows = await db
     .insert(hostDevice)
     .values({
@@ -111,8 +94,19 @@ export async function upsertHostDevice(input: {
       version: input.info.version,
       localIp: input.info.localIp,
       port: input.info.port,
-      lastSeenAt: new Date(),
-      createdAt: new Date(),
+      lastSeenAt: now,
+      createdAt: now,
+    })
+    .onConflictDoUpdate({
+      target: hostDevice.serverId,
+      set: {
+        hostname: input.info.hostname,
+        platform: input.info.platform,
+        version: input.info.version,
+        localIp: input.info.localIp,
+        port: input.info.port,
+        lastSeenAt: now,
+      },
     })
     .returning();
   return toDTO(rows[0]);
