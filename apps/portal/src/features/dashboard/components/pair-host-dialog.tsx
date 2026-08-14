@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { approveHostAgentAction } from "@/server/actions/host-agents";
 import { toast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 import { Monitor, ExternalLink, KeyRound } from "lucide-react";
 
 interface PairHostDialogProps {
@@ -29,6 +30,14 @@ export function PairHostDialog({ open, onOpenChange }: PairHostDialogProps) {
 
   const portalOrigin =
     typeof window !== "undefined" ? window.location.origin : "";
+  const lanstreamUrl = `lanstream://pair?portal=${encodeURIComponent(portalOrigin)}`;
+
+  const handleLaunchProtocol = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof window !== "undefined") {
+      window.location.href = lanstreamUrl;
+    }
+  };
 
   const handlePairSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,20 +82,19 @@ export function PairHostDialog({ open, onOpenChange }: PairHostDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Quick launch button */}
-          <Button
-            variant="outline"
-            className="w-full justify-center gap-2 py-5"
-            render={
-              <a
-                href={`lanstream://pair?portal=${encodeURIComponent(portalOrigin)}`}
-              />
-            }
+          {/* Quick launch button / link */}
+          <a
+            href={lanstreamUrl}
+            onClick={handleLaunchProtocol}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "w-full justify-center gap-2 py-5 font-medium cursor-pointer"
+            )}
           >
             <Monitor className="h-4 w-4 text-primary" />
             Launch Host App Protocol
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
+          </a>
 
           <div className="relative flex items-center justify-center">
             <div className="absolute inset-0 flex items-center">
